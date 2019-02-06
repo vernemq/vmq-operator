@@ -117,7 +117,7 @@ vmq-operator-7fbfd5bfbc-9cbjc   0/1     ImagePullBackOff   0          11m
 
 ## License
 
-Operator SDK is under Apache 2.0 license. See the [LICENSE][license_file] file for details.
+The Operator SDK and the VerneMQ Operator are under Apache 2.0 license. See the [LICENSE][license_file] file for details.
 
 [operator_link]: https://coreos.com/operators/
 [proposals_docs]: ./doc/proposals
