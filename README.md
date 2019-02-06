@@ -114,3 +114,26 @@ example-vernemq-1               1/1     Running            0          6m19s
 example-vernemq-2               1/1     Running            0          6m18s
 vmq-operator-7fbfd5bfbc-9cbjc   0/1     ImagePullBackOff   0          11m
 ```
+
+## License
+
+Operator SDK is under Apache 2.0 license. See the [LICENSE][license_file] file for details.
+
+[operator_link]: https://coreos.com/operators/
+[proposals_docs]: ./doc/proposals
+[sdk_cli_ref]: ./doc/sdk-cli-reference.md
+[guide]: ./doc/user-guide.md
+[samples]: https://github.com/operator-framework/operator-sdk-samples
+[of-home]: https://github.com/operator-framework
+[of-blog]: https://coreos.com/blog/introducing-operator-framework
+[contrib]: ./CONTRIBUTING.MD
+[bug_guide]:./doc/dev/reporting_bugs.md
+[license_file]:./LICENSE
+[dep_tool]:https://golang.github.io/dep/docs/installation.html
+[git_tool]:https://git-scm.com/downloads
+[go_tool]:https://golang.org/dl/
+[docker_tool]:https://docs.docker.com/install/
+[kubectl_tool]:https://kubernetes.io/docs/tasks/tools/install-kubectl/
+[controller_runtime]: https://github.com/kubernetes-sigs/controller-runtime
+[ansible_user_guide]:./doc/ansible/user-guide.md
+[helm_user_guide]:./doc/helm/user-guide.md
