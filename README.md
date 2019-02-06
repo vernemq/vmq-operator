@@ -1,94 +1,93 @@
-# new-vmq-operator2
-// TODO(user): Add simple overview of use/purpose
+# vmq-operator
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+Note: the following sections are copy pasted from https://github.com/operator-framework/operator-sdk/edit/master/doc/user-guide.md
 
-## Getting Started
-You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
-**Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
+## Build and run the operator
 
-### Running on the cluster
-1. Install Instances of Custom Resources:
+Before running the operator, the CRD must be registered with the Kubernetes apiserver:
 
 ```sh
-kubectl apply -f config/samples/
+$ kubectl create -f deploy/crds/vernemq_v1alpha1_vernemq_crd.yaml
 ```
 
-2. Build and push your image to the location specified by `IMG`:
-	
-```sh
-make docker-build docker-push IMG=<some-registry>/new-vmq-operator2:tag
+Once this is done, there are two ways to run the operator:
+
+- As a Deployment inside a Kubernetes cluster
+- As Go program outside a cluster
+
+### 1. Run as a Deployment inside the cluster
+
+Build the vmq-operator image and push it to a registry [not required for minicube testing]:
 ```
-	
-3. Deploy the controller to the cluster with the image specified by `IMG`:
-
-```sh
-make deploy IMG=<some-registry>/new-vmq-operator2:tag
-```
-
-### Uninstall CRDs
-To delete the CRDs from the cluster:
-
-```sh
-make uninstall
+$ operator-sdk build vernemq/vmq-operator:latest
+$ sed -i 's|REPLACE_IMAGE|vernemq/vmq-operator:latest|g' deploy/operator.yaml
+$ docker push vernemq/vmq-operator:latest
 ```
 
-### Undeploy controller
-UnDeploy the controller to the cluster:
+The Deployment manifest is generated at `deploy/operator.yaml`. Be sure to update the deployment image as shown above since the default is just a placeholder.
+
+Setup RBAC and deploy the memcached-operator:
 
 ```sh
-make undeploy
+$ kubectl create -f deploy/service_account.yaml
+$ kubectl create -f deploy/role.yaml
+$ kubectl create -f deploy/role_binding.yaml
+$ kubectl create -f deploy/operator.yaml
 ```
 
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-### How it works
-This project aims to follow the Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)
-
-It uses [Controllers](https://kubernetes.io/docs/concepts/architecture/controller/) 
-which provides a reconcile function responsible for synchronizing resources untile the desired state is reached on the cluster 
-
-### Test It Out
-1. Install the CRDs into the cluster:
+Verify that the vmq-operator is up and running:
 
 ```sh
-make install
+$ kubectl get deployment
+NAME                     DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+vmq-operator       1         1         1            1           1m
 ```
 
-2. Run your controller (this will run in the foreground, so switch to a new terminal if you want to leave it running):
+### 2. Run locally outside the cluster
+
+This method is preferred during development cycle to deploy and test faster.
+
+Set the name of the operator in an environment variable:
 
 ```sh
-make run
+export OPERATOR_NAME=vmq-operator
 ```
 
-**NOTE:** You can also run this in one step by running: `make install run`
-
-### Modifying the API definitions
-If you are editing the API definitions, generate the manifests such as CRs or CRDs using:
+Run the operator locally with the default kubernetes config file present at `$HOME/.kube/config`:
 
 ```sh
-make manifests
+$ operator-sdk up local --namespace=default
+2018/09/30 23:10:11 Go Version: go1.10.2
+2018/09/30 23:10:11 Go OS/Arch: darwin/amd64
+2018/09/30 23:10:11 operator-sdk Version: 0.0.6+git
+2018/09/30 23:10:12 Registering Components.
+2018/09/30 23:10:12 Starting the Cmd.
 ```
 
-**NOTE:** Run `make --help` for more information on all potential `make` targets
+You can use a specific kubeconfig via the flag `--kubeconfig=<path/to/kubeconfig>`.
 
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
+## Create a VerneMQ CR
 
-## License
+Create the example `VerneMQ` CR that was generated at `deploy/crds/vernemq_v1alpha1_vernemq_cr.yaml`:
 
-Copyright 2022.
+```sh
+$ cat deploy/crds/vernemq_v1alpha1_vernemq_cr.yaml
+apiVersion: "vernrmq.com/v1alpha1"
+kind: "VerneMQ"
+metadata:
+  name: "example-vernemq"
+spec:
+  size: 3
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+$ kubectl apply -f deploy/crds/vernemq_v1alpha1_vernemq_cr.yaml
+```
+Check the pods and CR status to confirm the status is updated with the vernemq pod names:
 
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
+```sh
+$ kubectl get pods
+NAME                            READY   STATUS             RESTARTS   AGE
+example-vernemq-0               1/1     Running            0          6m31s
+example-vernemq-1               1/1     Running            0          6m19s
+example-vernemq-2               1/1     Running            0          6m18s
+vmq-operator-7fbfd5bfbc-9cbjc   0/1     ImagePullBackOff   0          11m
+```
