@@ -1,0 +1,7 @@
+apiVersion: vernemq.com/v1alpha1
+kind: VerneMQ
+metadata:
+  name: example-vernemq
+spec:
+  # Add fields here
+  size: 3

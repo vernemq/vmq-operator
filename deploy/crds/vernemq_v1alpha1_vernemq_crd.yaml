@@ -1,0 +1,29 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: vernemqs.vernemq.com
+spec:
+  group: vernemq.com
+  names:
+    kind: VerneMQ
+    listKind: VerneMQList
+    plural: vernemqs
+    singular: vernemq
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata:
+          type: object
+        spec:
+          type: object
+        status:
+          type: object
+  version: v1alpha1
