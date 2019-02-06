@@ -1,6 +1,29 @@
 # vmq-operator
 
-Note: the following sections are copy pasted from https://github.com/operator-framework/operator-sdk/edit/master/doc/user-guide.md
+Note: the following sections are mostly copy pasted from https://github.com/operator-framework/operator-sdk/edit/master/doc/user-guide.md
+
+## Prerequisites
+
+- [dep][dep_tool] version v0.5.0+.
+- [git][git_tool]
+- [go][go_tool] version v1.10+.
+- [docker][docker_tool] version 17.03+.
+- [kubectl][kubectl_tool] version v1.11.0+.
+- Access to a kubernetes v.1.11.0+ cluster (use Minikube locally).
+
+## Quick Start
+
+First, checkout and install the operator-sdk CLI:
+
+```sh
+$ mkdir -p $GOPATH/src/github.com/operator-framework
+$ cd $GOPATH/src/github.com/operator-framework
+$ git clone https://github.com/operator-framework/operator-sdk
+$ cd operator-sdk
+$ git checkout master
+$ make dep
+$ make install
+```
 
 ## Build and run the operator
 
@@ -26,7 +49,7 @@ $ docker push vernemq/vmq-operator:latest
 
 The Deployment manifest is generated at `deploy/operator.yaml`. Be sure to update the deployment image as shown above since the default is just a placeholder.
 
-Setup RBAC and deploy the memcached-operator:
+Setup RBAC and deploy the vmq-operator:
 
 ```sh
 $ kubectl create -f deploy/service_account.yaml
