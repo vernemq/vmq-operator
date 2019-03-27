@@ -1,4 +1,6 @@
-# vmq-operator
+# THIS IS WORK IN PROGRESS. DON'T USE
+
+# vmq_k8s
 
 Note: the following sections are mostly copy pasted from https://github.com/operator-framework/operator-sdk/edit/master/doc/user-guide.md
 
