@@ -2,25 +2,47 @@ package vernemq
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
+	"github.com/go-logr/logr"
 	vernemqv1alpha1 "github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	"github.com/blang/semver"
+	pkgerr "github.com/pkg/errors"
+)
+
+// Constants for VerneMQ StatefulSet & Volumes
+const (
+	governingServiceName = "vernemq-operated"
+
+	storageDir        = "/vernemq/data"
+	configmapsDir     = "/vernemq/etc/configmaps"
+	configFilename    = "vernemq.yaml.gz"
+	sSetInputHashName = "vernemq-operator-input-hash"
+
+	defaultVerneMQVersion   = "1.7.1-1-alpine"
+	defaultVerneMQBaseImage = "vernemq/vernemq"
+)
+
+var (
+	minSize             int32 = 1
+	probeTimeoutSeconds int32 = 3
 )
 
 var log = logf.Log.WithName("controller_vernemq")
@@ -34,6 +56,7 @@ var log = logf.Log.WithName("controller_vernemq")
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
 	return add(mgr, newReconciler(mgr))
+
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -76,6 +99,7 @@ type ReconcileVerneMQ struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+	logger logr.Logger
 }
 
 // Reconcile reads that state of the cluster for a VerneMQ object and makes changes based on the state read
@@ -87,6 +111,7 @@ type ReconcileVerneMQ struct {
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileVerneMQ) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	r.logger = reqLogger
 	reqLogger.Info("Reconciling VerneMQ")
 
 	// Fetch the VerneMQ instance
@@ -103,99 +128,140 @@ func (r *ReconcileVerneMQ) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	// check if the statefulset already exists, if not create a new one
-	found := &appsv1.StatefulSet{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, found)
-
-	if err != nil && errors.IsNotFound(err) {
-		// Define a new statefulset
-		dep := r.statefulSetForVerneMQ(instance)
-		reqLogger.Info("Creating a new StatefulSet", "StatefulSet.Namespace", dep.Namespace, "StatefulSet.Name", dep.Name)
-		err = r.client.Create(context.TODO(), dep)
-		if err != nil {
-			reqLogger.Error(err, "Failed to create new StatefulSet", "StatefulSet.Namespace", dep.Namespace, "StatefulSet.Name", dep.Name)
-			return reconcile.Result{}, err
-		}
-		// StatefulSet created successfully, return and requeue
-		return reconcile.Result{Requeue: true}, nil
-	} else if err != nil {
-		reqLogger.Error(err, "Failed to get StatefulSet")
-		return reconcile.Result{}, err
+	// Create empty Secret if it doesn't exist. See comment above.
+	secret := makeEmptyConfigurationSecret(instance)
+	err = r.createOrUpdate(secret.Name, secret.Namespace, secret)
+	if err != nil {
+		return reconcile.Result{}, pkgerr.Wrap(err, "creating empty config secret failed")
 	}
 
-	// Ensure the statefulset size is the same as the spec
-	size := instance.Spec.Size
-	if *found.Spec.Replicas != size {
-		found.Spec.Replicas = &size
+	statefulset, err := makeStatefulSet(instance)
+	if err != nil {
+		return reconcile.Result{}, pkgerr.Wrap(err, "generating statefulset failed")
+	}
+	err = r.createOrUpdate(statefulset.Name, statefulset.Namespace, statefulset)
+	if err != nil {
+		return reconcile.Result{}, pkgerr.Wrap(err, "creating statefulset failed")
+	}
+
+	return reconcile.Result{Requeue: true}, nil
+}
+
+func (r *ReconcileVerneMQ) createOrUpdate(name string, namespace string, found runtime.Object) error {
+	key := types.NamespacedName{Name: name, Namespace: namespace}
+	err := r.client.Get(context.TODO(), key, found)
+	if err != nil && errors.IsNotFound(err) {
+		// define a new resource
+		err = r.client.Create(context.TODO(), found)
+		if err != nil {
+			return pkgerr.Wrap(err, "failed to create object")
+		}
+		r.logger.Info("created", "object", reflect.TypeOf(found))
+		return nil
+	} else if err != nil {
+		return pkgerr.Wrap(err, "failed to retrieve object")
+	} else {
 		err = r.client.Update(context.TODO(), found)
 		if err != nil {
-			reqLogger.Error(err, "Failed to update StatefulSet", "StatefulSet.Namespace", found.Namespace, "StatefulSet.Name", found.Name)
-			return reconcile.Result{Requeue: true}, nil
+			return pkgerr.Wrap(err, "failed to update object")
 		}
+		r.logger.Info("updated", "object", reflect.TypeOf(found))
+		return nil
 	}
-
-	// update the VerneMQ status with the pod names
-	// List the pods for this VerneMQ statefulset
-	podList := &corev1.PodList{}
-	labelSelector := labels.SelectorFromSet(labelsForVerneMQ(instance.Name))
-	listOps := &client.ListOptions{Namespace: instance.Namespace, LabelSelector: labelSelector}
-	err = r.client.List(context.TODO(), listOps, podList)
-	if err != nil {
-		reqLogger.Error(err, "Failed to list pods", "StatefulSet.Namespace", found.Namespace, "StatefulSet.Name", found.Name)
-		return reconcile.Result{}, err
-	}
-	podNames := getPodNames(podList.Items)
-
-	// update status.Nodes if needed
-	if !reflect.DeepEqual(podNames, instance.Status.Nodes) {
-		instance.Status.Nodes = podNames
-		err := r.client.Status().Update(context.TODO(), instance)
-		if err != nil {
-			reqLogger.Error(err, "Failed to update VerneMQ status")
-			return reconcile.Result{}, err
-		}
-	}
-	// Namespace already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Namespace already exists", "StatefulSet.Namespace", found.Namespace, "StatefulSet.Name", found.Name)
-	return reconcile.Result{}, nil
 }
 
 // statefulSetForVerneMQ returns a VerneMQ StatefulSet object
-func (r *ReconcileVerneMQ) statefulSetForVerneMQ(instance *vernemqv1alpha1.VerneMQ) *appsv1.StatefulSet {
-	labels := labelsForVerneMQ(instance.Name)
-	replicas := instance.Spec.Size
+func makeStatefulSet(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet, error) {
 
-	set := &appsv1.StatefulSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "apps/v1",
-			Kind:		"StatefulSet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: 		instance.Name,
-			Namespace:	instance.Namespace,
-		},
-		Spec: appsv1.StatefulSetSpec{
-			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{{
-						Image: 		"vernemq/vernemq:latest-alpine",
-						Name: 		"vernemq",
-					}},
-				},
-			},
+	// instance is passed in by value, not by reference. But p contains references like
+	// to annotation map, that do not get copied on function invocation. Ensure to
+	// prevent side effects before editing p by creating a deep copy. For more
+	// details see https://github.com/coreos/prometheus-operator/issues/1659.
+	instance = instance.DeepCopy()
 
-		},
+	if instance.Spec.BaseImage == "" {
+		instance.Spec.BaseImage = defaultVerneMQBaseImage
 	}
-	// Set VerneMQ instance as the owner and controller
-	controllerutil.SetControllerReference(instance, set, r.scheme)
-	return set
+
+	if instance.Spec.Version == "" {
+		instance.Spec.Version = defaultVerneMQVersion
+	}
+
+	if instance.Spec.Size == nil {
+		instance.Spec.Size = &minSize
+	}
+	intZero := int32(0)
+	if instance.Spec.Size != nil && *instance.Spec.Size < 0 {
+		instance.Spec.Size = &intZero
+	}
+
+	spec, err := makeStatefulSetSpec(instance)
+
+	if err != nil {
+		return nil, pkgerr.Wrap(err, "make StatefulSet spec")
+	}
+
+	boolTrue := true
+	statefulset := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        prefixedName(instance.Name),
+			Namespace:   instance.Namespace,
+			Labels:      labelsForVerneMQ(instance.Name),
+			Annotations: instance.ObjectMeta.Annotations,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         instance.APIVersion,
+					BlockOwnerDeletion: &boolTrue,
+					Controller:         &boolTrue,
+					Kind:               instance.Kind,
+					Name:               instance.Name,
+					UID:                instance.UID,
+				},
+			},
+		},
+		Spec: *spec,
+	}
+
+	//if statefulset.ObjectMeta.Annotations == nil {
+	//	statefulset.ObjectMeta.Annotations = map[string]string{
+	//		sSetInputHashName: inputHash,
+	//	}
+	//} else {
+	//	statefulset.ObjectMeta.Annotations[sSetInputHashName] = inputHash
+
+	//}
+
+	if instance.Spec.ImagePullSecrets != nil && len(instance.Spec.ImagePullSecrets) > 0 {
+		statefulset.Spec.Template.Spec.ImagePullSecrets = instance.Spec.ImagePullSecrets
+	}
+
+	storageSpec := instance.Spec.Storage
+	if storageSpec == nil {
+		statefulset.Spec.Template.Spec.Volumes = append(statefulset.Spec.Template.Spec.Volumes, v1.Volume{
+			Name: volumeName(instance.Name),
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{},
+			},
+		})
+	} else if storageSpec.EmptyDir != nil {
+		emptyDir := storageSpec.EmptyDir
+		statefulset.Spec.Template.Spec.Volumes = append(statefulset.Spec.Template.Spec.Volumes, v1.Volume{
+			Name: volumeName(instance.Name),
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: emptyDir,
+			},
+		})
+	} else {
+		pvcTemplate := storageSpec.VolumeClaimTemplate
+		if pvcTemplate.Name == "" {
+			pvcTemplate.Name = volumeName(instance.Name)
+		}
+		pvcTemplate.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce}
+		pvcTemplate.Spec.Resources = storageSpec.VolumeClaimTemplate.Spec.Resources
+		pvcTemplate.Spec.Selector = storageSpec.VolumeClaimTemplate.Spec.Selector
+		statefulset.Spec.VolumeClaimTemplates = append(statefulset.Spec.VolumeClaimTemplates, pvcTemplate)
+	}
+	return statefulset, nil
 }
 
 func labelsForVerneMQ(name string) map[string]string {
@@ -208,4 +274,272 @@ func getPodNames(pods []corev1.Pod) []string {
 		podNames = append(podNames, pod.Name)
 	}
 	return podNames
+}
+
+func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSetSpec, error) {
+	// VerneMQ may take quite long to shut down to migrate existing
+	// sessions. Allow up to 10 minutes for clean termination
+	terminationGracePeriod := int64(600)
+
+	version, err := semver.Parse(instance.Spec.Version)
+	if err != nil {
+		return nil, pkgerr.Wrap(err, "parse version")
+	}
+
+	vernemqCommand := []string{"/bin/sh", "-c", "/vernemq/bin/vernemq console -noshel -noinput"}
+	//vernemqCommand := []string{
+	//	"/vernemq/bin/vernemq",
+	//}
+	//vernemqArgs := []string{
+	//	"console",
+	//	"-noshell",
+	//	"-noinput",
+	//}
+	switch version.Major {
+	case 1:
+		if version.Minor < 7 {
+			return nil, pkgerr.Errorf("unsupported VerneMQ minor version %s", version)
+		}
+	default:
+		return nil, pkgerr.Errorf("unsupported VerneMQ major version %s", version)
+	}
+
+	var securityContext *v1.PodSecurityContext = nil
+	if instance.Spec.SecurityContext != nil {
+		securityContext = instance.Spec.SecurityContext
+	}
+
+	var ports = []v1.ContainerPort{
+		{
+			Name:          "mqtt",
+			ContainerPort: 1883,
+			Protocol:      v1.ProtocolTCP,
+		},
+		{
+			Name:          "mqtts",
+			ContainerPort: 8883,
+			Protocol:      v1.ProtocolTCP,
+		},
+		{
+			Name:          "epmd",
+			ContainerPort: 4369,
+			Protocol:      v1.ProtocolTCP,
+		},
+		{
+			Name:          "vmq-cluster",
+			ContainerPort: 44053,
+			Protocol:      v1.ProtocolTCP,
+		},
+		{
+			Name:          "mqtt-ws",
+			ContainerPort: 8080,
+			Protocol:      v1.ProtocolTCP,
+		},
+		{
+			Name:          "http",
+			ContainerPort: 8888,
+			Protocol:      v1.ProtocolTCP,
+		},
+	}
+	epmdPortRange := []int32{9100, 9101, 9102, 9103, 9104, 9105, 9106, 9107, 9108, 9109}
+	for _, port := range epmdPortRange {
+		ports = append(ports, v1.ContainerPort{
+			ContainerPort: port,
+			Protocol:      v1.ProtocolTCP,
+		})
+	}
+
+	volumes := []v1.Volume{
+		{
+			Name: "config",
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: configSecretName(instance.Name),
+				},
+			},
+		},
+	}
+
+	volName := volumeName(instance.Name)
+	if instance.Spec.Storage != nil {
+		if instance.Spec.Storage.VolumeClaimTemplate.Name != "" {
+			volName = instance.Spec.Storage.VolumeClaimTemplate.Name
+		}
+	}
+
+	vernemqVolumeMounts := []v1.VolumeMount{
+		{
+			Name:      volName,
+			MountPath: storageDir,
+			SubPath:   subPathForStorage(instance.Spec.Storage),
+		},
+	}
+
+	for _, c := range instance.Spec.ConfigMaps {
+
+		volumes = append(volumes, v1.Volume{
+			Name: c,
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: c,
+					},
+				},
+			},
+		})
+		vernemqVolumeMounts = append(vernemqVolumeMounts, v1.VolumeMount{
+			Name:      c,
+			ReadOnly:  true,
+			MountPath: configmapsDir + c,
+		})
+	}
+
+	var livenessFailureThreshold int32 = 60
+
+	var livenessProbeHandler = v1.Handler{
+		Exec: &v1.ExecAction{
+			Command: []string{"/bin/sh", "-c", "/vernemq/bin/vernemq ping | grep pong"},
+		},
+	}
+	var readinessProbeHandler = v1.Handler{
+		Exec: &v1.ExecAction{
+			Command: []string{"/bin/sh", "-c", "/vernemq/bin/vernemq ping | grep pong"},
+		},
+	}
+
+	var livenessProbe = &v1.Probe{
+		Handler:          livenessProbeHandler,
+		PeriodSeconds:    5,
+		TimeoutSeconds:   probeTimeoutSeconds,
+		FailureThreshold: livenessFailureThreshold,
+	}
+	var readinessProbe = &v1.Probe{
+		Handler:          readinessProbeHandler,
+		PeriodSeconds:    5,
+		TimeoutSeconds:   probeTimeoutSeconds,
+		FailureThreshold: 120, // allow up to 10m on startup for data recovery
+	}
+
+	podLabels := map[string]string{}
+	podAnnotations := map[string]string{}
+	if instance.Spec.PodMetadata != nil {
+		if instance.Spec.PodMetadata.Labels != nil {
+			for k, v := range instance.Spec.PodMetadata.Labels {
+				podLabels[k] = v
+			}
+		}
+		if instance.Spec.PodMetadata.Annotations != nil {
+			for k, v := range instance.Spec.PodMetadata.Annotations {
+				podAnnotations[k] = v
+			}
+		}
+	}
+	podLabels["app"] = "vernemq"
+	podLabels["vernemq"] = instance.Name
+
+	additionalContainers := instance.Spec.Containers
+
+	vernemqImage := fmt.Sprintf("%s:%s", instance.Spec.BaseImage, instance.Spec.Version)
+	if instance.Spec.Tag != "" {
+		vernemqImage = fmt.Sprintf("%s:%s", instance.Spec.BaseImage, instance.Spec.Tag)
+	}
+	if instance.Spec.SHA != "" {
+		vernemqImage = fmt.Sprintf("%s@sha256:%s", instance.Spec.BaseImage, instance.Spec.SHA)
+	}
+	if instance.Spec.Image != nil && *instance.Spec.Image != "" {
+		vernemqImage = *instance.Spec.Image
+	}
+
+	return &appsv1.StatefulSetSpec{
+		ServiceName:         governingServiceName,
+		Replicas:            instance.Spec.Size,
+		PodManagementPolicy: appsv1.ParallelPodManagement,
+		UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
+			Type: appsv1.RollingUpdateStatefulSetStrategyType,
+		},
+		Selector: &metav1.LabelSelector{
+			MatchLabels: podLabels,
+		},
+		Template: v1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels:      podLabels,
+				Annotations: podAnnotations,
+			},
+			Spec: v1.PodSpec{
+				Containers: append([]v1.Container{
+					{
+						Name:    "vernemq",
+						Image:   vernemqImage,
+						Ports:   ports,
+						Command: vernemqCommand,
+						//Args:           vernemqArgs,
+						VolumeMounts:   vernemqVolumeMounts,
+						LivenessProbe:  livenessProbe,
+						ReadinessProbe: readinessProbe,
+						Resources:      instance.Spec.Resources,
+					},
+				}, additionalContainers...),
+				SecurityContext:               securityContext,
+				ServiceAccountName:            instance.Spec.ServiceAccountName,
+				NodeSelector:                  instance.Spec.NodeSelector,
+				PriorityClassName:             instance.Spec.PriorityClassName,
+				TerminationGracePeriodSeconds: &terminationGracePeriod,
+				Volumes:                       volumes,
+				Tolerations:                   instance.Spec.Tolerations,
+				Affinity:                      instance.Spec.Affinity,
+			},
+		},
+	}, nil
+}
+
+func configSecretName(name string) string {
+	return prefixedName(name)
+}
+
+func volumeName(name string) string {
+	return fmt.Sprintf("%s-db", prefixedName(name))
+}
+
+func prefixedName(name string) string {
+	return fmt.Sprintf("vernemq-%s", name)
+}
+
+func subPathForStorage(s *vernemqv1alpha1.StorageSpec) string {
+	if s == nil {
+		return ""
+	}
+	return "vernemq-db"
+}
+func makeEmptyConfigurationSecret(instance *vernemqv1alpha1.VerneMQ) *v1.Secret {
+	s := makeConfigSecret(instance)
+	s.Namespace = instance.Namespace
+
+	s.ObjectMeta.Annotations = map[string]string{
+		"empty": "true",
+	}
+
+	return s
+}
+
+func makeConfigSecret(instance *vernemqv1alpha1.VerneMQ) *v1.Secret {
+	boolTrue := true
+	return &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   configSecretName(instance.Name),
+			Labels: labelsForVerneMQ(instance.Name),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         instance.APIVersion,
+					BlockOwnerDeletion: &boolTrue,
+					Controller:         &boolTrue,
+					Kind:               instance.Kind,
+					Name:               instance.Name,
+					UID:                instance.UID,
+				},
+			},
+		},
+		Data: map[string][]byte{
+			configFilename: {},
+		},
+	}
 }
