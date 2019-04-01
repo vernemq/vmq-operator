@@ -4,4 +4,6 @@ metadata:
   name: example-vernemq
 spec:
   # Add fields here
-  size: 3
+  size: 2
+  tag: latest-alpine
+  baseImage: erlio/docker-vernemq
