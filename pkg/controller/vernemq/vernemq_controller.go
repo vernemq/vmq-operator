@@ -1,9 +1,12 @@
 package vernemq
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"reflect"
+	"text/template"
 
 	"github.com/go-logr/logr"
 	vernemqv1alpha1 "github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1"
@@ -15,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -36,7 +40,7 @@ const (
 	configFilename    = "vernemq.yaml.gz"
 	sSetInputHashName = "vernemq-operator-input-hash"
 
-	defaultVerneMQVersion   = "1.7.1-1-alpine"
+	defaultVerneMQVersion   = "1.7.1-2-alpine"
 	defaultVerneMQBaseImage = "vernemq/vernemq"
 )
 
@@ -135,6 +139,11 @@ func (r *ReconcileVerneMQ) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, pkgerr.Wrap(err, "creating empty config secret failed")
 	}
 
+	service := makeStatefulSetService(instance)
+	err = r.createOrUpdate(service.Name, service.Namespace, service)
+	if err != nil {
+		return reconcile.Result{}, pkgerr.Wrap(err, "generating service failed")
+	}
 	statefulset, err := makeStatefulSet(instance)
 	if err != nil {
 		return reconcile.Result{}, pkgerr.Wrap(err, "generating statefulset failed")
@@ -147,25 +156,26 @@ func (r *ReconcileVerneMQ) Reconcile(request reconcile.Request) (reconcile.Resul
 	return reconcile.Result{Requeue: true}, nil
 }
 
-func (r *ReconcileVerneMQ) createOrUpdate(name string, namespace string, found runtime.Object) error {
+func (r *ReconcileVerneMQ) createOrUpdate(name string, namespace string, object runtime.Object) error {
+	found := object.DeepCopyObject()
 	key := types.NamespacedName{Name: name, Namespace: namespace}
 	err := r.client.Get(context.TODO(), key, found)
 	if err != nil && errors.IsNotFound(err) {
 		// define a new resource
-		err = r.client.Create(context.TODO(), found)
+		err = r.client.Create(context.TODO(), object)
 		if err != nil {
 			return pkgerr.Wrap(err, "failed to create object")
 		}
-		r.logger.Info("created", "object", reflect.TypeOf(found))
+		r.logger.Info("created", "object", reflect.TypeOf(object))
 		return nil
 	} else if err != nil {
 		return pkgerr.Wrap(err, "failed to retrieve object")
 	} else {
-		err = r.client.Update(context.TODO(), found)
+		err = r.client.Update(context.TODO(), object)
 		if err != nil {
 			return pkgerr.Wrap(err, "failed to update object")
 		}
-		r.logger.Info("updated", "object", reflect.TypeOf(found))
+		r.logger.Info("updated", "object", reflect.TypeOf(object))
 		return nil
 	}
 }
@@ -276,6 +286,41 @@ func getPodNames(pods []corev1.Pod) []string {
 	return podNames
 }
 
+func makeStatefulSetService(instance *vernemqv1alpha1.VerneMQ) *v1.Service {
+
+	svc := &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      governingServiceName,
+			Namespace: instance.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					Name:       instance.GetName(),
+					Kind:       instance.Kind,
+					APIVersion: instance.APIVersion,
+					UID:        instance.GetUID(),
+				},
+			},
+			Labels: map[string]string{
+				"operated-vernemq": "true",
+			},
+		},
+		Spec: v1.ServiceSpec{
+			ClusterIP: "None",
+			Ports: []v1.ServicePort{
+				{
+					Name:       "mqtt",
+					Port:       1883,
+					TargetPort: intstr.FromString("mqtt"),
+				},
+			},
+			Selector: map[string]string{
+				"app": "vernemq",
+			},
+		},
+	}
+	return svc
+}
+
 func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSetSpec, error) {
 	// VerneMQ may take quite long to shut down to migrate existing
 	// sessions. Allow up to 10 minutes for clean termination
@@ -286,7 +331,14 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 		return nil, pkgerr.Wrap(err, "parse version")
 	}
 
-	vernemqCommand := []string{"/bin/sh", "-c", "/vernemq/bin/vernemq console -noshel -noinput"}
+	vernemqCommand := []string{"/bin/sh", "-c", `
+	mkdir -p plugins && \
+	curl -L https://github.com/dergraf/downloads/raw/master/plugin.tar.gz | tar xvz -C plugins && \
+	echo $VERNEMQ_CONF | base64 -d > /vernemq/etc/vernemq.conf && \
+	echo $VM_ARGS | base64 -d > /vernemq/etc/vm.args && \
+	echo "-name VerneMQ@$VERNEMQ_NODENAME" >> /vernemq/etc/vm.args && \
+	cat /vernemq/etc/vm.args && \
+	/vernemq/bin/vernemq console -noshell -noinput`}
 	//vernemqCommand := []string{
 	//	"/vernemq/bin/vernemq",
 	//}
@@ -304,7 +356,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 		return nil, pkgerr.Errorf("unsupported VerneMQ major version %s", version)
 	}
 
-	var securityContext *v1.PodSecurityContext = nil
+	var securityContext *v1.PodSecurityContext
 	if instance.Spec.SecurityContext != nil {
 		securityContext = instance.Spec.SecurityContext
 	}
@@ -351,7 +403,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 
 	volumes := []v1.Volume{
 		{
-			Name: "config",
+			Name: "vernemq-conf",
 			VolumeSource: v1.VolumeSource{
 				Secret: &v1.SecretVolumeSource{
 					SecretName: configSecretName(instance.Name),
@@ -373,25 +425,11 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 			MountPath: storageDir,
 			SubPath:   subPathForStorage(instance.Spec.Storage),
 		},
-	}
-
-	for _, c := range instance.Spec.ConfigMaps {
-
-		volumes = append(volumes, v1.Volume{
-			Name: c,
-			VolumeSource: v1.VolumeSource{
-				ConfigMap: &v1.ConfigMapVolumeSource{
-					LocalObjectReference: v1.LocalObjectReference{
-						Name: c,
-					},
-				},
-			},
-		})
-		vernemqVolumeMounts = append(vernemqVolumeMounts, v1.VolumeMount{
-			Name:      c,
+		{
+			Name:      "vernemq-conf",
+			MountPath: configmapsDir,
 			ReadOnly:  true,
-			MountPath: configmapsDir + c,
-		})
+		},
 	}
 
 	var livenessFailureThreshold int32 = 60
@@ -450,6 +488,12 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 		vernemqImage = *instance.Spec.Image
 	}
 
+	UID := int64(10000)
+	vmqContainerSecurityContext := v1.SecurityContext{
+		RunAsUser:  &UID,
+		RunAsGroup: &UID,
+	}
+
 	return &appsv1.StatefulSetSpec{
 		ServiceName:         governingServiceName,
 		Replicas:            instance.Spec.Size,
@@ -473,10 +517,29 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 						Ports:   ports,
 						Command: vernemqCommand,
 						//Args:           vernemqArgs,
-						VolumeMounts:   vernemqVolumeMounts,
-						LivenessProbe:  livenessProbe,
-						ReadinessProbe: readinessProbe,
-						Resources:      instance.Spec.Resources,
+						VolumeMounts:    vernemqVolumeMounts,
+						LivenessProbe:   livenessProbe,
+						ReadinessProbe:  readinessProbe,
+						Resources:       instance.Spec.Resources,
+						SecurityContext: &vmqContainerSecurityContext,
+						Env: []v1.EnvVar{
+							{
+								Name: "VERNEMQ_NODENAME",
+								ValueFrom: &v1.EnvVarSource{
+									FieldRef: &v1.ObjectFieldSelector{
+										FieldPath: "metadata.name",
+									},
+								},
+							},
+							{
+								Name:  "VERNEMQ_CONF",
+								Value: makeGlobalVerneMQConf(instance),
+							},
+							{
+								Name:  "VM_ARGS",
+								Value: makeGlobalVMArgs(instance),
+							},
+						},
 					},
 				}, additionalContainers...),
 				SecurityContext:               securityContext,
@@ -538,8 +601,48 @@ func makeConfigSecret(instance *vernemqv1alpha1.VerneMQ) *v1.Secret {
 				},
 			},
 		},
-		Data: map[string][]byte{
-			configFilename: {},
-		},
+		Type:       "Opaque",
+		StringData: map[string]string{},
 	}
+}
+
+func makeGlobalVerneMQConf(instance *vernemqv1alpha1.VerneMQ) string {
+	// Static configuration that can't be changed on runtime
+	// belongs here:
+	config := `metadata_plugin = vmq_swc
+plugins.vmq_passwd = off
+plugins.vmq_acl = off
+plugins.vmq_k8s.path = /vernemq/plugins/_build/default
+plugins.vmq_k8s = on
+leveldb.maximum_memory.percent = 20`
+	return base64.StdEncoding.EncodeToString([]byte(config))
+}
+
+func makeGlobalVMArgs(instance *vernemqv1alpha1.VerneMQ) string {
+	// -name is added by start script
+	tmpl, err := template.New("config").Parse(
+		`+P 256000
+-env ERL_MAX_ETS_TABLES 256000
+-env ERL_CRASH_DUMP /var/log/vernemq/erl_crash.dump
+-env ERL_FULLSWEEP_AFTER 0
+-env ERL_MAX_PORTS 262144
++A 64
+-setcookie {{.Cookie}}
++K true
++W w
+-smp enable
+`)
+	if err != nil {
+		panic(err)
+	}
+	var res bytes.Buffer
+	err = tmpl.Execute(&res, struct {
+		Cookie string
+	}{
+		Cookie: "vmq",
+	})
+	if err != nil {
+		panic(err)
+	}
+	return base64.StdEncoding.EncodeToString([]byte(res.String()))
 }
