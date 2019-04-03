@@ -1,0 +1,15 @@
+config:
+  allow_anonymous: on
+  allow_register_during_netsplit: off
+  allow_publish_during_netsplit: on
+
+listeners:
+  - address: 127.0.0.1
+    port: 8081
+    type: mqtt
+    mountpoint: "hello"
+    max_connections: "100"
+
+
+plugins:
+  - name: vmq_passwd

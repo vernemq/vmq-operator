@@ -1,11 +1,12 @@
 {application, vmq_k8s,
- [{description, "An OTP application"},
-  {vsn, "0.1.0"},
+ [{description, "VMQ Kubernetes Helper Plugin"},
+  {vsn, git},
   {registered, []},
   {mod, { vmq_k8s_app, []}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    yamerl
    ]},
   {env,[]},
   {modules, []},

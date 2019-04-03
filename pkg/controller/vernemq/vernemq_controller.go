@@ -139,11 +139,11 @@ func (r *ReconcileVerneMQ) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, pkgerr.Wrap(err, "creating empty config secret failed")
 	}
 
-	service := makeStatefulSetService(instance)
-	err = r.createOrUpdate(service.Name, service.Namespace, service)
-	if err != nil {
-		return reconcile.Result{}, pkgerr.Wrap(err, "generating service failed")
-	}
+	//service := makeStatefulSetService(instance)
+	//err = r.createOrUpdate(service.Name, service.Namespace, service)
+	//if err != nil {
+	//	return reconcile.Result{}, pkgerr.Wrap(err, "generating service failed")
+	//}
 	statefulset, err := makeStatefulSet(instance)
 	if err != nil {
 		return reconcile.Result{}, pkgerr.Wrap(err, "generating statefulset failed")
@@ -405,8 +405,16 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 		{
 			Name: "vernemq-conf",
 			VolumeSource: v1.VolumeSource{
-				Secret: &v1.SecretVolumeSource{
-					SecretName: configSecretName(instance.Name),
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: "vernemq-conf",
+					},
+					Items: []v1.KeyToPath{
+						{
+							Key:  "config.yaml",
+							Path: "config.yaml",
+						},
+					},
 				},
 			},
 		},
@@ -428,7 +436,6 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 		{
 			Name:      "vernemq-conf",
 			MountPath: configmapsDir,
-			ReadOnly:  true,
 		},
 	}
 
@@ -524,12 +531,17 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 						SecurityContext: &vmqContainerSecurityContext,
 						Env: []v1.EnvVar{
 							{
-								Name: "VERNEMQ_NODENAME",
-								ValueFrom: &v1.EnvVarSource{
-									FieldRef: &v1.ObjectFieldSelector{
-										FieldPath: "metadata.name",
-									},
-								},
+								Name:  "VERNEMQ_NODENAME",
+								Value: "127.0.0.1",
+								//ValueFrom: &v1.EnvVarSource{
+								//	FieldRef: &v1.ObjectFieldSelector{
+								//		FieldPath: "metadata.name",
+								//	},
+								//},
+							},
+							{
+								Name:  "VMQ_CONFIGMAP",
+								Value: fmt.Sprintf("%s/config.yaml", configmapsDir),
 							},
 							{
 								Name:  "VERNEMQ_CONF",

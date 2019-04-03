@@ -28,7 +28,10 @@ start_link() ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-    {ok, { {one_for_all, 0, 1}, []} }.
+    Reloader = {vmq_k8s_reloader, {vmq_k8s_reloader, start_link, []},
+                permanent, 5000, worker, [vmq_k8s_reloader]},
+
+    {ok, { {one_for_all, 0, 1}, [Reloader]} }.
 
 %%====================================================================
 %% Internal functions
