@@ -15,7 +15,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -33,8 +35,6 @@ import (
 
 // Constants for VerneMQ StatefulSet & Volumes
 const (
-	governingServiceName = "vernemq-operated"
-
 	storageDir        = "/vernemq/data"
 	configmapsDir     = "/vernemq/etc/configmaps"
 	configFilename    = "vernemq.yaml.gz"
@@ -139,11 +139,11 @@ func (r *ReconcileVerneMQ) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, pkgerr.Wrap(err, "creating empty config secret failed")
 	}
 
-	//service := makeStatefulSetService(instance)
-	//err = r.createOrUpdate(service.Name, service.Namespace, service)
-	//if err != nil {
-	//	return reconcile.Result{}, pkgerr.Wrap(err, "generating service failed")
-	//}
+	service := makeStatefulSetService(instance)
+	err = r.createOrUpdate(service.Name, service.Namespace, service)
+	if err != nil {
+		return reconcile.Result{}, pkgerr.Wrap(err, "generating service failed")
+	}
 	statefulset, err := makeStatefulSet(instance)
 	if err != nil {
 		return reconcile.Result{}, pkgerr.Wrap(err, "generating statefulset failed")
@@ -153,10 +153,36 @@ func (r *ReconcileVerneMQ) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, pkgerr.Wrap(err, "creating statefulset failed")
 	}
 
+	podList, err := r.listPods(instance.Name, instance.Namespace)
+	if err != nil {
+		return reconcile.Result{}, pkgerr.Wrap(err, "listing pods failed")
+	}
+	clusterViewSecret := makeClusterViewSecret(instance, podList)
+	err = r.createOrUpdate(clusterViewSecret.Name, clusterViewSecret.Namespace, clusterViewSecret)
+	if err != nil {
+		return reconcile.Result{}, pkgerr.Wrap(err, "creating clusterview secret failed")
+	}
+
 	return reconcile.Result{Requeue: true}, nil
 }
 
+func (r *ReconcileVerneMQ) listPods(name string, namespace string) (*corev1.PodList, error) {
+	podList := &corev1.PodList{}
+	labelSelector := labels.SelectorFromSet(labelsForVerneMQ(name))
+	listOps := &client.ListOptions{
+		Namespace:     namespace,
+		LabelSelector: labelSelector,
+	}
+	err := r.client.List(context.TODO(), listOps, podList)
+
+	if err != nil {
+		return podList, pkgerr.Wrap(err, "listing pods failed")
+	}
+	return podList, nil
+}
+
 func (r *ReconcileVerneMQ) createOrUpdate(name string, namespace string, object runtime.Object) error {
+
 	found := object.DeepCopyObject()
 	key := types.NamespacedName{Name: name, Namespace: namespace}
 	err := r.client.Get(context.TODO(), key, found)
@@ -171,6 +197,15 @@ func (r *ReconcileVerneMQ) createOrUpdate(name string, namespace string, object 
 	} else if err != nil {
 		return pkgerr.Wrap(err, "failed to retrieve object")
 	} else {
+		a := meta.NewAccessor()
+		resourceVersion, err := a.ResourceVersion(found)
+		if err != nil {
+			return pkgerr.Wrap(err, "coudln't extract resource version of object")
+		}
+		err = a.SetResourceVersion(object, resourceVersion)
+		if err != nil {
+			return pkgerr.Wrap(err, "coudln't set resource version on object")
+		}
 		err = r.client.Update(context.TODO(), object)
 		if err != nil {
 			return pkgerr.Wrap(err, "failed to update object")
@@ -216,7 +251,6 @@ func makeStatefulSet(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet, er
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        prefixedName(instance.Name),
 			Namespace:   instance.Namespace,
-			Labels:      labelsForVerneMQ(instance.Name),
 			Annotations: instance.ObjectMeta.Annotations,
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -275,7 +309,7 @@ func makeStatefulSet(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet, er
 }
 
 func labelsForVerneMQ(name string) map[string]string {
-	return map[string]string{"app": "vernemq", "vernemq_cr": name}
+	return map[string]string{"app": "vernemq", "vernemq": name}
 }
 
 func getPodNames(pods []corev1.Pod) []string {
@@ -290,14 +324,12 @@ func makeStatefulSetService(instance *vernemqv1alpha1.VerneMQ) *v1.Service {
 
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      governingServiceName,
-			Namespace: instance.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
-				metav1.OwnerReference{
-					Name:       instance.GetName(),
-					Kind:       instance.Kind,
+				{
 					APIVersion: instance.APIVersion,
-					UID:        instance.GetUID(),
+					Kind:       instance.Kind,
+					Name:       instance.Name,
+					UID:        instance.UID,
 				},
 			},
 			Labels: map[string]string{
@@ -318,6 +350,8 @@ func makeStatefulSetService(instance *vernemqv1alpha1.VerneMQ) *v1.Service {
 			},
 		},
 	}
+	svc.Name = serviceName(instance.Name)
+	svc.Namespace = instance.Namespace
 	return svc
 }
 
@@ -418,6 +452,20 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 				},
 			},
 		},
+		{
+			Name: "vernemq-clusterview",
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: "vernemq-clusterview",
+					Items: []v1.KeyToPath{
+						{
+							Key:  "vernemq.clusterview",
+							Path: "vernemq.clusterview",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	volName := volumeName(instance.Name)
@@ -436,6 +484,11 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 		{
 			Name:      "vernemq-conf",
 			MountPath: configmapsDir,
+		},
+		{
+			Name: "vernemq-clusterview",
+			//MountPath: configmapsDir,
+			MountPath: fmt.Sprintf("%s/clusterview", configmapsDir),
 		},
 	}
 
@@ -479,8 +532,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 			}
 		}
 	}
-	podLabels["app"] = "vernemq"
-	podLabels["vernemq"] = instance.Name
+	podLabels = labelsForVerneMQ(instance.Name)
 
 	additionalContainers := instance.Spec.Containers
 
@@ -502,7 +554,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 	}
 
 	return &appsv1.StatefulSetSpec{
-		ServiceName:         governingServiceName,
+		ServiceName:         serviceName(instance.Name),
 		Replicas:            instance.Spec.Size,
 		PodManagementPolicy: appsv1.ParallelPodManagement,
 		UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
@@ -571,8 +623,16 @@ func configSecretName(name string) string {
 	return prefixedName(name)
 }
 
+func clusterViewSecretName(name string) string {
+	return fmt.Sprintf("%s-clusterview", prefixedName(name))
+}
+
 func volumeName(name string) string {
 	return fmt.Sprintf("%s-db", prefixedName(name))
+}
+
+func serviceName(name string) string {
+	return fmt.Sprintf("%s-service", prefixedName(name))
 }
 
 func prefixedName(name string) string {
@@ -615,6 +675,38 @@ func makeConfigSecret(instance *vernemqv1alpha1.VerneMQ) *v1.Secret {
 		},
 		Type:       "Opaque",
 		StringData: map[string]string{},
+	}
+}
+
+func makeClusterViewSecret(instance *vernemqv1alpha1.VerneMQ, podList *corev1.PodList) *v1.Secret {
+	str := ""
+	clusterName := instance.ClusterName
+	if clusterName == "" {
+		clusterName = "cluster.local"
+	}
+
+	for _, pod := range podList.Items {
+		str += fmt.Sprintf("%s.%s.%s.svc.%s;", pod.Spec.Hostname, serviceName(instance.Name), instance.Namespace, clusterName)
+	}
+	boolTrue := true
+	return &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vernemq-clusterview",
+			Namespace: instance.Namespace,
+			Labels:    labelsForVerneMQ(instance.Name),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         instance.APIVersion,
+					BlockOwnerDeletion: &boolTrue,
+					Controller:         &boolTrue,
+					Kind:               instance.Kind,
+					Name:               instance.Name,
+					UID:                instance.UID,
+				},
+			},
+		},
+		Type:       "Opaque",
+		StringData: map[string]string{"vernemq.clusterview": str},
 	}
 }
 
