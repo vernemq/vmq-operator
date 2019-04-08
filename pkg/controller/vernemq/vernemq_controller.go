@@ -369,10 +369,14 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 	mkdir -p plugins && \
 	curl -L https://github.com/dergraf/downloads/raw/master/plugin.tar.gz | tar xvz -C plugins && \
 	echo $VERNEMQ_CONF | base64 -d > /vernemq/etc/vernemq.conf && \
+	echo "listener.vmq.clustering = $MY_POD_IP:44053" >> /vernemq/etc/vernemq.conf && \
 	echo $VM_ARGS | base64 -d > /vernemq/etc/vm.args && \
-	echo "-name VerneMQ@$VERNEMQ_NODENAME" >> /vernemq/etc/vm.args && \
+	echo "-name vmq@$VMQ_NODENAME.$VMQ_HOSTNAME" >> /vernemq/etc/vm.args && \
 	cat /vernemq/etc/vm.args && \
 	/vernemq/bin/vernemq console -noshell -noinput`}
+
+	vernemqStopCommand := []string{"/bin/sh", "-c", `
+	vmq-admin cluster leave node=vmq@$VMQ_NODENAME.$VMQ_HOSTNAME --timeout=3600 --kill_sessions`}
 	//vernemqCommand := []string{
 	//	"/vernemq/bin/vernemq",
 	//}
@@ -571,29 +575,42 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 			Spec: v1.PodSpec{
 				Containers: append([]v1.Container{
 					{
-						Name:    "vernemq",
-						Image:   vernemqImage,
-						Ports:   ports,
-						Command: vernemqCommand,
-						//Args:           vernemqArgs,
+						Name:            "vernemq",
+						Image:           vernemqImage,
+						Ports:           ports,
+						Command:         vernemqCommand,
 						VolumeMounts:    vernemqVolumeMounts,
 						LivenessProbe:   livenessProbe,
 						ReadinessProbe:  readinessProbe,
 						Resources:       instance.Spec.Resources,
 						SecurityContext: &vmqContainerSecurityContext,
+						Lifecycle: &v1.Lifecycle{
+							PreStop: &v1.Handler{
+								Exec: &v1.ExecAction{
+									Command: vernemqStopCommand,
+								},
+							},
+						},
 						Env: []v1.EnvVar{
 							{
-								Name:  "VERNEMQ_NODENAME",
-								Value: "127.0.0.1",
-								//ValueFrom: &v1.EnvVarSource{
-								//	FieldRef: &v1.ObjectFieldSelector{
-								//		FieldPath: "metadata.name",
-								//	},
-								//},
+								Name: "VMQ_NODENAME",
+								ValueFrom: &v1.EnvVarSource{
+									FieldRef: &v1.ObjectFieldSelector{
+										FieldPath: "metadata.name",
+									},
+								},
+							},
+							{
+								Name:  "VMQ_HOSTNAME",
+								Value: getHostname(instance),
 							},
 							{
 								Name:  "VMQ_CONFIGMAP",
 								Value: fmt.Sprintf("%s/config.yaml", configmapsDir),
+							},
+							{
+								Name:  "VMQ_CLUSTERVIEW",
+								Value: fmt.Sprintf("%s/clusterview/vernemq.clusterview", configmapsDir),
 							},
 							{
 								Name:  "VERNEMQ_CONF",
@@ -602,6 +619,23 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 							{
 								Name:  "VM_ARGS",
 								Value: makeGlobalVMArgs(instance),
+							},
+							{
+								Name: "ERLANG_SCHEDULERS",
+								ValueFrom: &v1.EnvVarSource{
+									ResourceFieldRef: &v1.ResourceFieldSelector{
+										ContainerName: "vernemq",
+										Resource:      "requests.cpu",
+									},
+								},
+							},
+							{
+								Name: "MY_POD_IP",
+								ValueFrom: &v1.EnvVarSource{
+									FieldRef: &v1.ObjectFieldSelector{
+										FieldPath: "status.podIP",
+									},
+								},
 							},
 						},
 					},
@@ -678,15 +712,18 @@ func makeConfigSecret(instance *vernemqv1alpha1.VerneMQ) *v1.Secret {
 	}
 }
 
-func makeClusterViewSecret(instance *vernemqv1alpha1.VerneMQ, podList *corev1.PodList) *v1.Secret {
-	str := ""
+func getHostname(instance *vernemqv1alpha1.VerneMQ) string {
 	clusterName := instance.ClusterName
 	if clusterName == "" {
 		clusterName = "cluster.local"
 	}
+	return fmt.Sprintf("%s.%s.svc.%s", serviceName(instance.Name), instance.Namespace, clusterName)
+}
 
+func makeClusterViewSecret(instance *vernemqv1alpha1.VerneMQ, podList *corev1.PodList) *v1.Secret {
+	str := ""
 	for _, pod := range podList.Items {
-		str += fmt.Sprintf("%s.%s.%s.svc.%s;", pod.Spec.Hostname, serviceName(instance.Name), instance.Namespace, clusterName)
+		str += fmt.Sprintf("vmq@%s.%s;", pod.Spec.Hostname, getHostname(instance))
 	}
 	boolTrue := true
 	return &v1.Secret{
@@ -718,7 +755,9 @@ plugins.vmq_passwd = off
 plugins.vmq_acl = off
 plugins.vmq_k8s.path = /vernemq/plugins/_build/default
 plugins.vmq_k8s = on
-leveldb.maximum_memory.percent = 20`
+leveldb.maximum_memory.percent = 20
+log.console = console
+`
 	return base64.StdEncoding.EncodeToString([]byte(config))
 }
 
