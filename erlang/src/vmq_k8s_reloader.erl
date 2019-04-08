@@ -23,7 +23,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {map=#{}}).
+-record(state, {map=#{}, clustering_state=[]}).
 
 %%%===================================================================
 %%% API
@@ -99,7 +99,8 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(check_config, #state{map=ConfigState0} = State0) ->
+
+handle_info(check_config, #state{map=ConfigState0, clustering_state=ClusteringState0} = State0) ->
     ConfigFile = os:getenv("VMQ_CONFIGMAP", "/vernemq/etc/vernemq.yaml"),
     ConfigState1 =
     try yamerl_constr:file(ConfigFile) of
@@ -113,8 +114,23 @@ handle_info(check_config, #state{map=ConfigState0} = State0) ->
             lager:error("Error while parsing ConfigMap ~p ~p", [E, R]),
             ConfigState0
     end,
-    erlang:send_after(1000, self(), check_config),
-    {noreply, State0#state{map=ConfigState1}}.
+    ClusterviewFile = os:getenv("VMQ_CLUSTERVIEW", "/vernemq/etc/configmaps/clusterview/clusterview.yaml"),
+    Ret =
+    case file:read_file(ClusterviewFile) of
+        {ok, Content} ->
+            Nodes = [N || N <- re:split(Content, ";"), N =/= <<>>],
+            check_clustering(Nodes, ClusteringState0);
+        {error, Reason} ->
+            lager:error("Can't read Clusterview File ~p due to ~p", [ClusterviewFile, Reason]),
+            ClusteringState0
+    end,
+    case Ret of
+        its_over ->
+            {stop, normal, State0};
+        _ ->
+            erlang:send_after(1000, self(), check_config),
+            {noreply, State0#state{map=ConfigState1, clustering_state=Ret}}
+    end.
 
 apply_config([Config|_], CurrentState) ->
     State0 = #{},
@@ -255,6 +271,29 @@ default_val(ConfigKey) ->
             {ok, proplists:get_value(ConfigKey, Res)};
         {error, {invalid_config_keys, _}} ->
             {error, invalid_key}
+    end.
+
+check_clustering(CurNodes, OldNodes) ->
+    MySelf = atom_to_binary(node(), utf8),
+    case {lists:member(MySelf, CurNodes),
+          lists:member(MySelf, OldNodes)} of
+        {true, false} ->
+            case CurNodes -- [MySelf] of
+                [] ->
+                    % we're the FirstNode, others will join
+                    CurNodes;
+                [FirstNode|_] ->
+                    % join with FirstNode
+                    command(["cluster", "join", "discovery-node=" ++ binary_to_list(FirstNode)]),
+                    CurNodes
+            end;
+        {false, true} ->
+            % we have to leave, this will teardown the mqtt listeners and init:stop the node when finished
+            command(["cluster", "leave" "node=" ++ binary_to_list(MySelf), "--timeout=3600", "--kill_sessions"]),
+            its_over;
+        _ ->
+            % no change
+            CurNodes
     end.
 
 succf(K,V) ->
