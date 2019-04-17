@@ -35,8 +35,10 @@ import (
 
 // Constants for VerneMQ StatefulSet & Volumes
 const (
+	vernemqName       = "vernemq"
 	storageDir        = "/vernemq/data"
-	configmapsDir     = "/vernemq/etc/configmaps"
+	configmapsDir     = "/vernemq/etc/configmaps/"
+	secretsDir        = "/vernemq/etc/secrets/"
 	configFilename    = "vernemq.yaml.gz"
 	sSetInputHashName = "vernemq-operator-input-hash"
 
@@ -358,7 +360,16 @@ func makeStatefulSetService(instance *vernemqv1alpha1.VerneMQ) *v1.Service {
 func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSetSpec, error) {
 	// VerneMQ may take quite long to shut down to migrate existing
 	// sessions. Allow up to 10 minutes for clean termination
-	terminationGracePeriod := int64(600)
+
+	dropoutPeriod := int64(0)
+	if instance.Spec.DropoutPeriodSeconds != nil {
+		dropoutPeriod = *instance.Spec.DropoutPeriodSeconds
+	}
+
+	terminationGracePeriod := int64(3600)
+	if instance.Spec.TerminationGracePeriodSeconds != nil {
+		terminationGracePeriod = *instance.Spec.TerminationGracePeriodSeconds + dropoutPeriod
+	}
 
 	version, err := semver.Parse(instance.Spec.Version)
 	if err != nil {
@@ -370,13 +381,17 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 	curl -L https://github.com/dergraf/downloads/raw/master/plugin.tar.gz | tar xvz -C plugins && \
 	echo $VERNEMQ_CONF | base64 -d > /vernemq/etc/vernemq.conf && \
 	echo "listener.vmq.clustering = $MY_POD_IP:44053" >> /vernemq/etc/vernemq.conf && \
+	echo "listener.http.default = $MY_POD_IP:8888" >> /vernemq/etc/vernemq.conf && \
 	echo $VM_ARGS | base64 -d > /vernemq/etc/vm.args && \
 	echo "-name vmq@$VMQ_NODENAME.$VMQ_HOSTNAME" >> /vernemq/etc/vm.args && \
 	cat /vernemq/etc/vm.args && \
 	/vernemq/bin/vernemq console -noshell -noinput`}
 
-	vernemqStopCommand := []string{"/bin/sh", "-c", `
-	vmq-admin cluster leave node=vmq@$VMQ_NODENAME.$VMQ_HOSTNAME --timeout=3600 --kill_sessions`}
+	vernemqPreStopCommand := []string{"/bin/sh", "-c", fmt.Sprintf(`
+	vmq-admin cluster leave node=vmq@$VMQ_NODENAME.$VMQ_HOSTNAME && \
+	sleep %d && \
+	vmq-admin cluster leave node=vmq@$VMQ_NODENAME.$VMQ_HOSTNAME --timeout=%d --kill_sessions
+	`, dropoutPeriod, terminationGracePeriod)}
 	//vernemqCommand := []string{
 	//	"/vernemq/bin/vernemq",
 	//}
@@ -496,27 +511,57 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 		},
 	}
 
+	for _, s := range instance.Spec.Secrets {
+		volumes = append(volumes, v1.Volume{
+			Name: volumeName("secret-" + s),
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					SecretName: s,
+				},
+			},
+		})
+		vernemqVolumeMounts = append(vernemqVolumeMounts, v1.VolumeMount{
+			Name:      volumeName("secret-" + s),
+			ReadOnly:  true,
+			MountPath: secretsDir + s,
+		})
+	}
+
+	for _, c := range instance.Spec.ConfigMaps {
+		volumes = append(volumes, v1.Volume{
+			Name: volumeName("configmap-" + c),
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: c,
+					},
+				},
+			},
+		})
+		vernemqVolumeMounts = append(vernemqVolumeMounts, v1.VolumeMount{
+			Name:      volumeName("configmap-" + c),
+			ReadOnly:  true,
+			MountPath: configmapsDir + c,
+		})
+	}
+
 	var livenessFailureThreshold int32 = 60
 
-	var livenessProbeHandler = v1.Handler{
-		Exec: &v1.ExecAction{
-			Command: []string{"/bin/sh", "-c", "/vernemq/bin/vernemq ping | grep pong"},
-		},
-	}
-	var readinessProbeHandler = v1.Handler{
-		Exec: &v1.ExecAction{
-			Command: []string{"/bin/sh", "-c", "/vernemq/bin/vernemq ping | grep pong"},
+	var probeHandler = v1.Handler{
+		HTTPGet: &v1.HTTPGetAction{
+			Path: "/health",
+			Port: intstr.FromInt(8888),
 		},
 	}
 
 	var livenessProbe = &v1.Probe{
-		Handler:          livenessProbeHandler,
+		Handler:          probeHandler,
 		PeriodSeconds:    5,
 		TimeoutSeconds:   probeTimeoutSeconds,
 		FailureThreshold: livenessFailureThreshold,
 	}
 	var readinessProbe = &v1.Probe{
-		Handler:          readinessProbeHandler,
+		Handler:          probeHandler,
 		PeriodSeconds:    5,
 		TimeoutSeconds:   probeTimeoutSeconds,
 		FailureThreshold: 120, // allow up to 10m on startup for data recovery
@@ -575,7 +620,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 			Spec: v1.PodSpec{
 				Containers: append([]v1.Container{
 					{
-						Name:            "vernemq",
+						Name:            vernemqName,
 						Image:           vernemqImage,
 						Ports:           ports,
 						Command:         vernemqCommand,
@@ -587,7 +632,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 						Lifecycle: &v1.Lifecycle{
 							PreStop: &v1.Handler{
 								Exec: &v1.ExecAction{
-									Command: vernemqStopCommand,
+									Command: vernemqPreStopCommand,
 								},
 							},
 						},
@@ -624,7 +669,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 								Name: "ERLANG_SCHEDULERS",
 								ValueFrom: &v1.EnvVarSource{
 									ResourceFieldRef: &v1.ResourceFieldSelector{
-										ContainerName: "vernemq",
+										ContainerName: vernemqName,
 										Resource:      "requests.cpu",
 									},
 								},
@@ -670,7 +715,7 @@ func serviceName(name string) string {
 }
 
 func prefixedName(name string) string {
-	return fmt.Sprintf("vernemq-%s", name)
+	return fmt.Sprintf("%s-%s", vernemqName, name)
 }
 
 func subPathForStorage(s *vernemqv1alpha1.StorageSpec) string {
