@@ -157,11 +157,6 @@ func (in *VerneMQSpec) DeepCopyInto(out *VerneMQSpec) {
 			(*out)[key] = val
 		}
 	}
-	if in.ConfigMaps != nil {
-		in, out := &in.ConfigMaps, &out.ConfigMaps
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
 		*out = new(v1.Affinity)
@@ -173,6 +168,26 @@ func (in *VerneMQSpec) DeepCopyInto(out *VerneMQSpec) {
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
+	}
+	if in.DropoutPeriodSeconds != nil {
+		in, out := &in.DropoutPeriodSeconds, &out.DropoutPeriodSeconds
+		*out = new(int64)
+		**out = **in
+	}
+	if in.TerminationGracePeriodSeconds != nil {
+		in, out := &in.TerminationGracePeriodSeconds, &out.TerminationGracePeriodSeconds
+		*out = new(int64)
+		**out = **in
+	}
+	if in.Secrets != nil {
+		in, out := &in.Secrets, &out.Secrets
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.ConfigMaps != nil {
+		in, out := &in.ConfigMaps, &out.ConfigMaps
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	return
 }

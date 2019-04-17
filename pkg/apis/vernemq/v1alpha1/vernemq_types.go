@@ -69,14 +69,20 @@ type VerneMQSpec struct {
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 	// Priority class assigned to the Pods
 	PriorityClassName string `json:"priorityClassName,omitempty"`
-	// ConfigMaps is a list of ConfigMaps in the same namespace as the Prometheus
-	// object, which shall be mounted into the Prometheus Pods.
-	// The ConfigMaps are mounted into /etc/prometheus/configmaps/<configmap-name>.
-	ConfigMaps []string `json:"configMaps,omitempty"`
 	// If specified, the pod's scheduling constraints.
 	Affinity *v1.Affinity `json:"affinity,omitempty"`
 	// If specified, the pod's tolerations.
-	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
+	Tolerations                   []v1.Toleration `json:"tolerations,omitempty"`
+	DropoutPeriodSeconds          *int64          `json:"dropoutPeriodSeconds,omitempty"`
+	TerminationGracePeriodSeconds *int64          `json:"terminationGracePeriodSeconds,omitempty"`
+	// Secrets is a list of Secrets in the same namespace as the VerneMQ
+	// object, which shall be mounted into the VerneMQ Pods.
+	// The Secrets are mounted into /etc/vernemq/secrets/<secret-name>.
+	Secrets []string `json:"secrets,omitempty"`
+	// ConfigMaps is a list of ConfigMaps in the same namespace as the VerneMQ
+	// object, which shall be mounted into the VerneMQ Pods.
+	// The ConfigMaps are mounted into /etc/vernemq/configmaps/<configmap-name>.
+	ConfigMaps []string `json:"configMaps,omitempty"`
 }
 
 // VerneMQStatus defines the observed state of VerneMQ
