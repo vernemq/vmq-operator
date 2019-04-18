@@ -83,6 +83,13 @@ type VerneMQSpec struct {
 	// object, which shall be mounted into the VerneMQ Pods.
 	// The ConfigMaps are mounted into /etc/vernemq/configmaps/<configmap-name>.
 	ConfigMaps []string `json:"configMaps,omitempty"`
+	// Defines the config that is used when starting VerneMQ (similar to vernemq.conf)
+	VMQConfig string `json:"vmqConfig,omitempty"`
+	// Defines the arguments passed to the erlang VM when starting VerneMQ
+	VMArgs string `json:"vmArgs,omitempty"`
+	// Defines additional environment variables for the VerneMQ container
+	// The environment variables can be used to template the VMQConfig and VMArgs
+	Env []v1.EnvVar `json:"env,omitempty"`
 }
 
 // VerneMQStatus defines the observed state of VerneMQ

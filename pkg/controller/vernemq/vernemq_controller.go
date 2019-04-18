@@ -1,12 +1,9 @@
 package vernemq
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	"fmt"
 	"reflect"
-	"text/template"
 
 	"github.com/go-logr/logr"
 	vernemqv1alpha1 "github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1"
@@ -291,47 +288,4 @@ func makeClusterViewSecret(instance *vernemqv1alpha1.VerneMQ, podList *corev1.Po
 		Type:       "Opaque",
 		StringData: map[string]string{"vernemq.clusterview": str},
 	}
-}
-
-func makeGlobalVerneMQConf(instance *vernemqv1alpha1.VerneMQ) string {
-	// Static configuration that can't be changed on runtime
-	// belongs here:
-	config := `metadata_plugin = vmq_swc
-plugins.vmq_passwd = off
-plugins.vmq_acl = off
-plugins.vmq_k8s.path = /vernemq/plugins/_build/default
-plugins.vmq_k8s = on
-leveldb.maximum_memory.percent = 20
-log.console = console
-`
-	return base64.StdEncoding.EncodeToString([]byte(config))
-}
-
-func makeGlobalVMArgs(instance *vernemqv1alpha1.VerneMQ) string {
-	// -name is added by start script
-	tmpl, err := template.New("config").Parse(
-		`+P 256000
--env ERL_MAX_ETS_TABLES 256000
--env ERL_CRASH_DUMP /var/log/vernemq/erl_crash.dump
--env ERL_FULLSWEEP_AFTER 0
--env ERL_MAX_PORTS 262144
-+A 64
--setcookie {{.Cookie}}
-+K true
-+W w
--smp enable
-`)
-	if err != nil {
-		panic(err)
-	}
-	var res bytes.Buffer
-	err = tmpl.Execute(&res, struct {
-		Cookie string
-	}{
-		Cookie: "vmq",
-	})
-	if err != nil {
-		panic(err)
-	}
-	return base64.StdEncoding.EncodeToString([]byte(res.String()))
 }

@@ -1,6 +1,7 @@
 package vernemq
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	"github.com/blang/semver"
@@ -127,12 +128,8 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 	vernemqCommand := []string{"/bin/sh", "-c", `
 	mkdir -p plugins && \
 	curl -L https://github.com/dergraf/downloads/raw/master/plugin.tar.gz | tar xvz -C plugins && \
-	echo $VERNEMQ_CONF | base64 -d > /vernemq/etc/vernemq.conf && \
-	echo "listener.vmq.clustering = $MY_POD_IP:44053" >> /vernemq/etc/vernemq.conf && \
-	echo "listener.http.default = $MY_POD_IP:8888" >> /vernemq/etc/vernemq.conf && \
-	echo $VM_ARGS | base64 -d > /vernemq/etc/vm.args && \
-	echo "-name vmq@$VMQ_NODENAME.$VMQ_HOSTNAME" >> /vernemq/etc/vm.args && \
-	cat /vernemq/etc/vm.args && \
+	eval "echo \"$(echo $VERNEMQ_CONF | base64 -d)\"" > /vernemq/etc/vernemq.conf && \
+	eval "echo \"$(echo $VM_ARGS | base64 -d)\"" > /vernemq/etc/vm.args && \
 	/vernemq/bin/vernemq console -noshell -noinput`}
 
 	vernemqPreStopCommand := []string{"/bin/sh", "-c", fmt.Sprintf(`
@@ -329,9 +326,8 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 			}
 		}
 	}
-	podLabels = labelsForVerneMQ(instance.Name)
-
-	additionalContainers := instance.Spec.Containers
+	podLabels["app"] = "vernemq"
+	podLabels["vernemq"] = instance.Name
 
 	vernemqImage := fmt.Sprintf("%s:%s", instance.Spec.BaseImage, instance.Spec.Version)
 	if instance.Spec.Tag != "" {
@@ -349,6 +345,9 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 		RunAsUser:  &UID,
 		RunAsGroup: &UID,
 	}
+
+	additionalContainers := instance.Spec.Containers
+	envVars := instance.Spec.Env
 
 	return &appsv1.StatefulSetSpec{
 		ServiceName:         serviceName(instance.Name),
@@ -384,7 +383,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 								},
 							},
 						},
-						Env: []v1.EnvVar{
+						Env: append([]v1.EnvVar{
 							{
 								Name: "VMQ_NODENAME",
 								ValueFrom: &v1.EnvVarSource{
@@ -430,7 +429,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 									},
 								},
 							},
-						},
+						}, envVars...),
 					},
 				}, additionalContainers...),
 				SecurityContext:               securityContext,
@@ -444,4 +443,40 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 			},
 		},
 	}, nil
+}
+
+func makeGlobalVerneMQConf(instance *vernemqv1alpha1.VerneMQ) string {
+	// Static configuration that can't be changed on runtime
+	// belongs here:
+	config := `metadata_plugin = vmq_swc
+listener.vmq.clustering = $MY_POD_IP:44053
+listener.http.default = $MY_POD_IP:8888
+plugins.vmq_passwd = off
+plugins.vmq_acl = off
+plugins.vmq_k8s.path = /vernemq/plugins/_build/default
+plugins.vmq_k8s = on
+leveldb.maximum_memory.percent = 20
+log.console = console
+`
+	config = config + instance.Spec.VMQConfig + "\n"
+	fmt.Printf(config)
+	return base64.StdEncoding.EncodeToString([]byte(config))
+}
+func makeGlobalVMArgs(instance *vernemqv1alpha1.VerneMQ) string {
+	// -name is added by start script
+	vmArgs := `+P 256000
+-env ERL_MAX_ETS_TABLES 256000
+-env ERL_CRASH_DUMP /vernemq/log/erl_crash.dump
+-env ERL_FULLSWEEP_AFTER 0
+-env ERL_MAX_PORTS 262144
++A 64
+-setcookie ${VMQ_DISTRIBUTED_COOKIE:-vmq}
+-name vmq@$VMQ_NODENAME.$VMQ_HOSTNAME
++K true
++W w
+-smp enable
+`
+	vmArgs = vmArgs + instance.Spec.VMArgs + "\n"
+	fmt.Printf(vmArgs)
+	return base64.StdEncoding.EncodeToString([]byte(vmArgs))
 }
