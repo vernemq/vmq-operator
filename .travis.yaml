@@ -1,3 +1,4 @@
+# from https://github.com/water-hole/ansible-operator/blob/master/.travis.yml
 language: go
 sudo: required
 
