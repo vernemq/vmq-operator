@@ -33,7 +33,7 @@ jobs:
         - oc cluster up
         - oc login -u system:admin
         - oc project default
-        - oc tag vernemq/vmq-operator:travis vmq-operator:travis
+        - oc tag --source="docker" vernemq/vmq-operator:travis vmq-operator:travis
         # Wait until node is ready
         - JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
       script:
