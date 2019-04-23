@@ -1,6 +1,7 @@
-# from https://github.com/water-hole/ansible-operator/blob/master/.travis.yml
 language: go
 sudo: required
+
+# from https://github.com/water-hole/ansible-operator/blob/master/.travis.yml
 
 go_import_path: github.com/vernemq/vmq_k8s
 
