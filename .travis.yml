@@ -16,6 +16,7 @@ install:
   - make dep
   - make install
   - cd $GOPATH/src/github.com/vernemq/vmq-operator
+  - dep ensure
   - operator-sdk build vernemq/vernemq-operator:travis
 
 jobs:
