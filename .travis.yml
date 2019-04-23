@@ -15,7 +15,7 @@ install:
   - git checkout master
   - make dep
   - make install
-  - cd $GOPATH/src/github.com/vernemq/vmq_k8s
+  - cd $GOPATH/src/github.com/vernemq/vmq-operator
   - operator-sdk build vernemq/vernemq-operator:travis
 
 jobs:
