@@ -154,6 +154,13 @@ func (r *ReconcileVerneMQ) Reconcile(request reconcile.Request) (reconcile.Resul
 	if err != nil {
 		return reconcile.Result{}, pkgerr.Wrap(err, "listing pods failed")
 	}
+
+	emptyConfig := makeEmptyVerneMQConfigMap(instance)
+	err = r.client.Create(context.TODO(), emptyConfig)
+	if err != nil && errors.IsAlreadyExists(err) == false {
+		return reconcile.Result{}, pkgerr.Wrap(err, "creating empty config map failed")
+	}
+
 	clusterViewSecret := makeClusterViewSecret(instance, podList)
 	err = r.createOrUpdate(clusterViewSecret.Name, clusterViewSecret.Namespace, clusterViewSecret)
 	if err != nil {
@@ -260,6 +267,28 @@ func makeConfigSecret(instance *vernemqv1alpha1.VerneMQ) *v1.Secret {
 		},
 		Type:       "Opaque",
 		StringData: map[string]string{},
+	}
+}
+
+func makeEmptyVerneMQConfigMap(instance *vernemqv1alpha1.VerneMQ) *v1.ConfigMap {
+	boolTrue := true
+	return &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vernemq-conf",
+			Namespace: instance.Namespace,
+			Labels:    labelsForVerneMQ(instance.Name),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         instance.APIVersion,
+					BlockOwnerDeletion: &boolTrue,
+					Controller:         &boolTrue,
+					Kind:               instance.Kind,
+					Name:               instance.Name,
+					UID:                instance.UID,
+				},
+			},
+		},
+		Data: map[string]string{"config.yaml": ""},
 	}
 }
 

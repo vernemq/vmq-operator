@@ -137,7 +137,10 @@ apply_config([Config|_], CurrentState) ->
     State1 = apply_plugins_config(proplists:get_value("plugins", Config, []), State0, CurrentState),
     State2 = apply_listener_config(proplists:get_value("listeners", Config, []), State1, CurrentState),
     State3 = apply_value_config(proplists:get_value("config", Config, []), State2, CurrentState),
-    State3.
+    State3;
+apply_config([], CurrentState) ->
+    % empty file
+    CurrentState.
 
 apply_plugins_config([PluginConfig|Rest], Acc, CurrentState) ->
     case proplists:get_value("name", PluginConfig) of
