@@ -63,6 +63,8 @@ jobs:
         - kubectl create -f deploy/crds/vernemq_v1alpha1_vernemq_cr.yaml
         - (kubectl get statefulset | grep vernemq) ; while [ $? -ne 0 ] ; do sleep 5 && kubectl get statefulset && (kubectl get statefulset | grep vernemq) ; done
         - vernemq_statefulset=$(kubectl get statefulset | grep vernemq | awk '{print $1}')
+        - kubectl logs deployment/vmq-operator
+        - kubectl logs statefulset/${vernemq_statefulset}
         - kubectl rollout status statefulset/${vernemq_statefulset}
         - kubectl logs statefulset/${vernemq_statefulset} | grep "UP"
         - kubectl delete -f deploy/crds/vernemq_v1alpha1_vernemq_cr.yaml
