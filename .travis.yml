@@ -55,22 +55,16 @@ jobs:
         - sleep 10
 
         # wait for operator pod to run
-        - kubectl logs deployment/vmq-operator
         - kubectl rollout status deployment/vmq-operator
-        - kubectl logs deployment/vmq-operator
 
-        # deploy example resource and check for test string
+        # deploy VerneMQ resource
         - kubectl create -f deploy/crds/vernemq_v1alpha1_vernemq_cr.yaml
         - (kubectl get statefulset | grep vernemq) ; while [ $? -ne 0 ] ; do sleep 5 && kubectl get statefulset && (kubectl get statefulset | grep vernemq) ; done
         - vernemq_statefulset=$(kubectl get statefulset | grep vernemq | awk '{print $1}')
-        - kubectl logs deployment/vmq-operator
-        - kubectl logs statefulset/${vernemq_statefulset}
         - kubectl rollout status statefulset/${vernemq_statefulset}
-        - kubectl logs statefulset/${vernemq_statefulset} | grep "UP"
+        # delete VerneMQ resource
         - kubectl delete -f deploy/crds/vernemq_v1alpha1_vernemq_cr.yaml
-        # Test finalizer
-        - kubectl wait vernemq/example-vernemq --for=delete --timeout=1m || true
-        - kubectl logs deployment/vmq-operator | grep "finalizer_running"
+        - kubectl wait vernemq/example --for=delete --timeout=1m || true
 #    - stage: deploy
 #      script:
 #        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin quay.io

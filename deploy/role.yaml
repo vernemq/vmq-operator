@@ -5,13 +5,14 @@ metadata:
   name: vmq-operator
 rules:
 - apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
   - ""
   resources:
-  - pods
-  - services
-  - endpoints
-  - persistentvolumeclaims
-  - events
   - configmaps
   - secrets
   verbs:
@@ -19,18 +20,29 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - pods
+  verbs:
+  - 'list'
+  - 'delete'
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - services/finalizers
+  - endpoints
+  verbs:
+  - get
+  - create
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resources:
   - namespaces
   verbs:
   - get
-- apiGroups:
-  - apps
-  resources:
-  - deployments
-  - daemonsets
-  - replicasets
-  - statefulsets
-  verbs:
-  - '*'
+  - list
+  - watch
 - apiGroups:
   - monitoring.coreos.com
   resources:
