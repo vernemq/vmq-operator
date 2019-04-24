@@ -65,26 +65,20 @@ jobs:
         # delete VerneMQ resource
         - kubectl delete -f deploy/crds/vernemq_v1alpha1_vernemq_cr.yaml
         - kubectl wait vernemq/example --for=delete --timeout=1m || true
-#    - stage: deploy
-#      script:
-#        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin quay.io
-#        - docker tag quay.io/water-hole/ansible-operator quay.io/water-hole/ansible-operator
-#        - docker push quay.io/water-hole/ansible-operator
-#        - cd $GOPATH/src/github.com/water-hole/ansible-operator/example
-#        - docker build -f build/Dockerfile -t quay.io/water-hole/busybox-ansible-operator .
-#        - docker push quay.io/water-hole/busybox-ansible-operator
-#
-#    - stage: deploy-release
-#      script:
-#        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin quay.io
-#        - docker tag quay.io/water-hole/ansible-operator quay.io/water-hole/ansible-operator:${TRAVIS_TAG}
-#        - docker push quay.io/water-hole/ansible-operator:${TRAVIS_TAG}
-#        - cd $GOPATH/src/github.com/water-hole/ansible-operator/example
-#        - docker build -t quay.io/water-hole/busybox-ansible-operator:${TRAVIS_TAG} .
-#        - docker push quay.io/water-hole/busybox-ansible-operator:${TRAVIS_TAG}
+    - stage: deploy
+      script:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - docker tag vernemq/vmq-operator:travis vernemq/vmq-operator:latest
+        - docker push vernemq/vmq-operator:latest
+
+    - stage: deploy-release
+      script:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - docker tag vernemq/vmq-operator:travis vernemq/vmq-operator:${TRAVIS_TAG}
+        - docker push vernemq/vmq-operator:${TRAIVS_TAG}
 stages:
   - test
-#  - name: deploy
-#    if: (tag IS blank) AND (branch = master) AND (type = push)
-#  - name: deploy-release
-#    if: (tag IS present) AND (type = push)
+  - name: deploy
+    if: (tag IS blank) AND (branch = master) AND (type = push)
+  - name: deploy-release
+    if: (tag IS present) AND (type = push)
