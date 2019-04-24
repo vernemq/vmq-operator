@@ -1,0 +1,84 @@
+dist: xenial
+language: go
+sudo: required
+
+# from https://github.com/water-hole/ansible-operator/blob/master/.travis.yml
+
+go_import_path: github.com/vernemq/vmq-operator
+
+env:
+  global:
+    - CHANGE_MINIKUBE_NONE_USER=true
+    - MINIKUBE_WANTUPDATENOTIFICATION=false
+    - MINIKUBE_WANTREPORTERRORPROMPT=false
+    - MINIKUBE_HOME=$HOME
+    - CHANGE_MINIKUBE_NONE_USER=true
+    - KUBECONFIG=$HOME/.kube/config
+
+install:
+  # setup operator-sdk
+  - go get github.com/golang/dep/cmd/dep
+  - mkdir -p $GOPATH/src/github.com/operator-framework
+  - cd $GOPATH/src/github.com/operator-framework
+  - git clone https://github.com/operator-framework/operator-sdk
+  - cd operator-sdk
+  - git checkout master
+  - make dep
+  - make install
+  - cd $GOPATH/src/github.com/vernemq/vmq-operator
+  - dep ensure
+  - operator-sdk build vernemq/vmq-operator:travis
+
+jobs:
+  include:
+    - stage: test
+      before_script:
+        # Download kubectl, which is a requirement for using minikube.
+        - curl -Lo kubectl https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
+        # Download minikube.
+        - curl -Lo minikube https://storage.googleapis.com/minikube/releases/v0.35.0/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
+        - mkdir -p $HOME/.kube $HOME/.minikube
+        - touch $KUBECONFIG
+        - sudo minikube start --vm-driver=none --kubernetes-version=v1.13.0 
+        - "sudo chown -R travis: /home/travis/.minikube/"
+        # Wait until node is ready
+        - JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'; until kubectl get nodes -o jsonpath="$JSONPATH" 2>&1 | grep -q "Ready=True"; do sleep 1; done
+      script:
+        # create example CRD and operator
+        - sed -i 's/vernemq\/vmq-operator:latest/vernemq\/vmq-operator:travis/g' deploy/operator.yaml
+        - sed -i 's/imagePullPolicy:\ Always/imagePullPolicy:\ IfNotPresent/g' deploy/operator.yaml
+        - kubectl create -f deploy/service_account.yaml
+        - kubectl create -f deploy/role.yaml
+        - kubectl create -f deploy/role_binding.yaml
+        - kubectl create -f deploy/operator.yaml
+        - kubectl create -f deploy/crds/vernemq_v1alpha1_vernemq_crd.yaml
+        - sleep 10
+
+        # wait for operator pod to run
+        - kubectl rollout status deployment/vmq-operator
+
+        # deploy VerneMQ resource
+        - kubectl create -f deploy/crds/vernemq_v1alpha1_vernemq_cr.yaml
+        - (kubectl get statefulset | grep vernemq) ; while [ $? -ne 0 ] ; do sleep 5 && kubectl get statefulset && (kubectl get statefulset | grep vernemq) ; done
+        - vernemq_statefulset=$(kubectl get statefulset | grep vernemq | awk '{print $1}')
+        - kubectl rollout status statefulset/${vernemq_statefulset}
+        # delete VerneMQ resource
+        - kubectl delete -f deploy/crds/vernemq_v1alpha1_vernemq_cr.yaml
+        - kubectl wait vernemq/example --for=delete --timeout=1m || true
+    - stage: deploy
+      script:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - docker tag vernemq/vmq-operator:travis vernemq/vmq-operator:latest
+        - docker push vernemq/vmq-operator:latest
+
+    - stage: deploy-release
+      script:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - docker tag vernemq/vmq-operator:travis vernemq/vmq-operator:${TRAVIS_TAG}
+        - docker push vernemq/vmq-operator:${TRAIVS_TAG}
+stages:
+  - test
+  - name: deploy
+    if: (tag IS blank) AND (branch = master) AND (type = push)
+  - name: deploy-release
+    if: (tag IS present) AND (type = push)
