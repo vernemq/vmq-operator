@@ -51,8 +51,10 @@ jobs:
         - kubectl create -f deploy/role_binding.yaml
         - kubectl create -f deploy/operator.yaml
         - kubectl create -f deploy/crds/vernemq_v1alpha1_vernemq_crd.yaml
+        - sleep 10
 
         # wait for operator pod to run
+        - kubectl logs deployment/vmq-operator
         - kubectl rollout status deployment/vmq-operator
         - kubectl logs deployment/vmq-operator
 
