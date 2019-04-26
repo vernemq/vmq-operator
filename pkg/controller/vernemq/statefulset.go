@@ -127,7 +127,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 
 	vernemqCommand := []string{"/bin/sh", "-c", `
 	mkdir -p plugins && \
-	curl -L https://github.com/dergraf/downloads/raw/master/plugin.tar.gz | tar xvz -C plugins && \
+	curl -L http://$VMQ_BUNDLER_HOST/bundle.tar.gz | tar xvz -C plugins && \
 	eval "echo \"$(echo $VERNEMQ_CONF | base64 -d)\"" > /vernemq/etc/vernemq.conf && \
 	eval "echo \"$(echo $VM_ARGS | base64 -d)\"" > /vernemq/etc/vm.args && \
 	/vernemq/bin/vernemq console -noshell -noinput`}
@@ -403,6 +403,10 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 							{
 								Name:  "VMQ_CLUSTERVIEW",
 								Value: fmt.Sprintf("%s/clusterview/vernemq.clusterview", configmapsDir),
+							},
+							{
+								Name:  "VMQ_BUNDLER_HOST",
+								Value: bundlerServiceName(instance.Name),
 							},
 							{
 								Name:  "VERNEMQ_CONF",

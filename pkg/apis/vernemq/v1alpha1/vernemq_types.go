@@ -79,6 +79,8 @@ type VerneMQSpec struct {
 	// Defines additional environment variables for the VerneMQ container
 	// The environment variables can be used to template the VMQConfig and VMArgs
 	Env []v1.EnvVar `json:"env,omitempty"`
+	// Defines external plugins that have to be compiled and loaded into VerneMQ
+	ExternalPlugins []VerneMQPluginSpec `json:"externalPlugins,omitempty"`
 }
 
 // VerneMQPluginSpec defines the plugins to be fetched, compiled and loaded into the VerneMQ container
