@@ -18,6 +18,10 @@ func volumeName(name string) string {
 	return fmt.Sprintf("%s-db", prefixedName(name))
 }
 
+func deploymentName(name string) string {
+	return fmt.Sprintf("%s-deployment", prefixedName(name))
+}
+
 func prefixedName(name string) string {
 	return fmt.Sprintf("%s-%s", vernemqName, name)
 }

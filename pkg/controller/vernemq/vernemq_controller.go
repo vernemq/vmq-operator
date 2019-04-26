@@ -136,6 +136,18 @@ func (r *ReconcileVerneMQ) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, pkgerr.Wrap(err, "creating empty config secret failed")
 	}
 
+	deploymentService := makeDeploymentService(instance)
+	err = r.client.Create(context.TODO(), deploymentService)
+	if err != nil && errors.IsAlreadyExists(err) == false {
+		return reconcile.Result{}, pkgerr.Wrap(err, "generating deployment service failed")
+	}
+
+	deployment := makeDeployment(instance)
+	err = r.createOrUpdate(deployment.Name, deployment.Namespace, deployment)
+	if err != nil {
+		return reconcile.Result{}, pkgerr.Wrap(err, "generating deployment failed")
+	}
+
 	service := makeStatefulSetService(instance)
 	err = r.createOrUpdate(service.Name, service.Namespace, service)
 	if err != nil {
