@@ -185,7 +185,7 @@ metadata:
   name: example
 spec:
   # Add fields here
-  size: 2
+  size: 3
   tag: latest-alpine
   baseImage: erlio/docker-vernemq
 ```
