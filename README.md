@@ -1,10 +1,17 @@
-# THIS IS WORK IN PROGRESS. DON'T USE
+# VerneMQ Kubernetes Operator
 
-# vmq_k8s
+Project status: **alpha**
+
+The main goal of the VerneMQ Kubernetes Operator is to simplify the deployment of a VerneMQ cluster on Kubernetes. While the operator isn't the silver bullet for every VerneMQ deployment we hope to cover most cases, where scalability and high availability are required. 
+
+See: [Getting Started Guide][getting_started]
+
+
+## Development
 
 Note: the following sections are mostly copy pasted from https://github.com/operator-framework/operator-sdk/edit/master/doc/user-guide.md
 
-## Prerequisites
+### Prerequisites
 
 - [dep][dep_tool] version v0.5.0+.
 - [git][git_tool]
@@ -13,7 +20,7 @@ Note: the following sections are mostly copy pasted from https://github.com/oper
 - [kubectl][kubectl_tool] version v1.11.0+.
 - Access to a kubernetes v.1.11.0+ cluster (use Minikube locally).
 
-## Quick Start
+### Quick Start
 
 First, checkout and install the operator-sdk CLI:
 
@@ -27,7 +34,7 @@ $ make dep
 $ make install
 ```
 
-## Build and run the operator
+### Build and run the operator
 
 Before running the operator, the CRD must be registered with the Kubernetes apiserver:
 
@@ -40,7 +47,7 @@ Once this is done, there are two ways to run the operator:
 - As a Deployment inside a Kubernetes cluster
 - As Go program outside a cluster
 
-### 1. Run as a Deployment inside the cluster
+#### 1. Run as a Deployment inside the cluster
 
 Build the vmq-operator image and push it to a registry [not required for minicube testing]:
 ```
@@ -68,7 +75,7 @@ NAME                     DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
 vmq-operator       1         1         1            1           1m
 ```
 
-### 2. Run locally outside the cluster
+#### 2. Run locally outside the cluster
 
 This method is preferred during development cycle to deploy and test faster.
 
@@ -91,7 +98,7 @@ $ operator-sdk up local --namespace=default
 
 You can use a specific kubeconfig via the flag `--kubeconfig=<path/to/kubeconfig>`.
 
-## Create a VerneMQ CR
+### Create a VerneMQ CR
 
 Create the example `VerneMQ` CR that was generated at `deploy/crds/vernemq_v1alpha1_vernemq_cr.yaml`:
 
@@ -121,21 +128,10 @@ vmq-operator-7fbfd5bfbc-9cbjc   0/1     ImagePullBackOff   0          11m
 
 The Operator SDK and the VerneMQ Operator are under Apache 2.0 license. See the [LICENSE][license_file] file for details.
 
-[operator_link]: https://coreos.com/operators/
-[proposals_docs]: ./doc/proposals
-[sdk_cli_ref]: ./doc/sdk-cli-reference.md
-[guide]: ./doc/user-guide.md
-[samples]: https://github.com/operator-framework/operator-sdk-samples
-[of-home]: https://github.com/operator-framework
-[of-blog]: https://coreos.com/blog/introducing-operator-framework
-[contrib]: ./CONTRIBUTING.MD
-[bug_guide]:./doc/dev/reporting_bugs.md
+[getting_started]: ./docs/getting-started.md
 [license_file]:./LICENSE
 [dep_tool]:https://golang.github.io/dep/docs/installation.html
 [git_tool]:https://git-scm.com/downloads
 [go_tool]:https://golang.org/dl/
 [docker_tool]:https://docs.docker.com/install/
 [kubectl_tool]:https://kubernetes.io/docs/tasks/tools/install-kubectl/
-[controller_runtime]: https://github.com/kubernetes-sigs/controller-runtime
-[ansible_user_guide]:./doc/ansible/user-guide.md
-[helm_user_guide]:./doc/helm/user-guide.md
