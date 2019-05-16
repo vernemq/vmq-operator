@@ -15,7 +15,7 @@ We've seen that Docker is the goto solution to run VerneMQ, especially during th
 
 #### Automatic clustering
 
-To sucessfully join an existing VerneMQ cluster the joining node must know at least one other node of the cluster. Such a node is also called the discovery node. In a 'manual' environment a human operator knows all the names and IP addresses of all the servers, so he is able to manually execute the `vmq-admin cluster join / leave...` commands.Obviously you expect Kubernetes to automatically handle that.
+To sucessfully join an existing VerneMQ cluster the joining node must know at least one other node of the cluster. Such a node is also called the discovery node. In a 'manual' environment a human operator knows all the names and IP addresses of all the servers, so he is able to manually execute the `vmq-admin cluster join / leave...` commands. Obviously you expect Kubernetes to automatically handle that.
 
 #### Configuration
 
@@ -24,7 +24,7 @@ In a Kubernetes environment you expect to be able to change a ConfigMap and have
 
 #### Plugins
 
-VerneMQ comes with a small set of plugins that handle aspects like authentication and authorization. The built-in plugin mechanism enables the development of custom plugins so that VerneMQ can be better integrated with the software that runs your business. Custom plugins can be tricky in a Docker environment. First one must be able to properly build the plugin, second the artifact have to be accessible for VerneMQ, and last the plugin has to be enabled either via `vernemq.conf` or `vmq-admin`. To be able to leverage the power of the plugin mechanism in a Kubernetes environment, this should be as easy as pointing VerneMQ to a Git repo holding the sourcecode of the plugin. 
+VerneMQ comes with a small set of plugins that handle aspects like authentication and authorisation. The built-in plugin mechanism enables the development of custom plugins so that VerneMQ can be better integrated with the software that runs your business. Custom plugins can be tricky in a Docker environment. First one must be able to properly build the plugin, second the artifact have to be accessible for VerneMQ, and last the plugin has to be enabled either via `vernemq.conf` or `vmq-admin`. To be able to leverage the power of the plugin mechanism in a Kubernetes environment, this should be as easy as pointing VerneMQ to a Git repo holding the source code of the plugin. 
 
 ## Installing the Operator
 
