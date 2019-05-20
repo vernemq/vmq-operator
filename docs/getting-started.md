@@ -30,14 +30,19 @@ VerneMQ comes with a small set of plugins that handle aspects like authenticatio
 
 ### RBAC
 
-The following yaml creates the required role and service account.
+The following yaml snippets describe the required resources.
+
+#### Service Account
 
 ```yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: vmq-operator
+```
 
+#### Role
+```yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -84,7 +89,10 @@ rules:
   - '*'
   verbs:
   - '*'
+```
 
+#### Role Binding
+```yaml
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
