@@ -287,8 +287,8 @@ check_clustering(CurNodes, OldNodes) ->
                     CurNodes;
                 [FirstNode|_] ->
                     % join with FirstNode
-                    command(["cluster", "join", "discovery-node=" ++ binary_to_list(FirstNode)]),
-                    CurNodes
+                    command(["cluster", "join", "discovery-node=" ++ binary_to_list(FirstNode)],
+                            fun(_) -> CurNodes end, OldNodes)
             end;
         {false, true} ->
             % we have to leave, this will teardown the mqtt listeners and init:stop the node when finished
