@@ -87,7 +87,7 @@ type VerneMQSpec struct {
 // +k8s:openapi-gen=true
 type VerneMQPluginSpec struct {
 	ApplicationName string `json:"applicationName"`
-	RepoURL         string `json:"repoUrl"`
+	RepoURL         string `json:"repoURL"`
 	VersionType     string `json:"versionType"`
 	Version         string `json:"version"`
 }
@@ -119,10 +119,13 @@ type VerneMQStatus struct {
 // VerneMQ is the Schema for the vernemqs API
 // +k8s:openapi-gen=true
 type VerneMQ struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// Standard object’s metadata. More info:
+	// https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#metadata
+	// +k8s:openapi-gen=false
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VerneMQSpec   `json:"spec,omitempty"`
+	Spec   VerneMQSpec   `json:"spec"`
 	Status VerneMQStatus `json:"status,omitempty"`
 }
 

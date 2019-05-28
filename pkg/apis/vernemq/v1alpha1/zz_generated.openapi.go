@@ -13,9 +13,37 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQ":       schema_pkg_apis_vernemq_v1alpha1_VerneMQ(ref),
-		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQSpec":   schema_pkg_apis_vernemq_v1alpha1_VerneMQSpec(ref),
-		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQStatus": schema_pkg_apis_vernemq_v1alpha1_VerneMQStatus(ref),
+		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.StorageSpec":       schema_pkg_apis_vernemq_v1alpha1_StorageSpec(ref),
+		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQ":           schema_pkg_apis_vernemq_v1alpha1_VerneMQ(ref),
+		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQPluginSpec": schema_pkg_apis_vernemq_v1alpha1_VerneMQPluginSpec(ref),
+		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQSpec":       schema_pkg_apis_vernemq_v1alpha1_VerneMQSpec(ref),
+		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQStatus":     schema_pkg_apis_vernemq_v1alpha1_VerneMQStatus(ref),
+	}
+}
+
+func schema_pkg_apis_vernemq_v1alpha1_StorageSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StorageSpec defines the configured storage for VerneMQ Cluster nodes. If neither `emptyDir` nor `volumeClaimTemplate` is specified, then by default an [EmptyDir](https://kubernetes.io/docs/concepts/storage/volumes/#emptydir) will be used.",
+				Properties: map[string]spec.Schema{
+					"emptyDir": {
+						SchemaProps: spec.SchemaProps{
+							Description: "EmptyDirVolumeSource to be used by the VerneMQ StatefulSets. If specified, used in place of any volumeClaimTemplate. More info: https://kubernetes.io/docs/concepts/storage/volumes/#emptydir",
+							Ref:         ref("k8s.io/api/core/v1.EmptyDirVolumeSource"),
+						},
+					},
+					"volumeClaimTemplate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "A PVC spec to be used by the VerneMQ StatefulSets.",
+							Ref:         ref("k8s.io/api/core/v1.PersistentVolumeClaim"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.EmptyDirVolumeSource", "k8s.io/api/core/v1.PersistentVolumeClaim"},
 	}
 }
 
@@ -39,11 +67,6 @@ func schema_pkg_apis_vernemq_v1alpha1_VerneMQ(ref common.ReferenceCallback) comm
 							Format:      "",
 						},
 					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Ref: ref("github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQSpec"),
@@ -55,10 +78,49 @@ func schema_pkg_apis_vernemq_v1alpha1_VerneMQ(ref common.ReferenceCallback) comm
 						},
 					},
 				},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQSpec", "github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQSpec", "github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQStatus"},
+	}
+}
+
+func schema_pkg_apis_vernemq_v1alpha1_VerneMQPluginSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VerneMQPluginSpec defines the plugins to be fetched, compiled and loaded into the VerneMQ container",
+				Properties: map[string]spec.Schema{
+					"applicationName": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"repoURL": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"versionType": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+				Required: []string{"applicationName", "repoURL", "versionType", "version"},
+			},
+		},
+		Dependencies: []string{},
 	}
 }
 
@@ -67,10 +129,231 @@ func schema_pkg_apis_vernemq_v1alpha1_VerneMQSpec(ref common.ReferenceCallback) 
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "VerneMQSpec defines the desired state of VerneMQ",
-				Properties:  map[string]spec.Schema{},
+				Properties: map[string]spec.Schema{
+					"podMetadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object’s metadata. More info: https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#metadata Metadata Labels and Annotations gets propagated to the vernemq pods.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"size": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Size is the size of the VerneMQ deployment",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version of VerneMQ to be deployed",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"tag": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Tag of VerneMQ container image to be deployed. Defaults to the value of `version`. Version is ignored if Tag is set.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"sha": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SHA of VerneMQ container image to be deployed. Defaults to the value of `version`. Similar to a tag, but the SHA explicitly deploys an immutable container image. Version and Tag are ignored if SHA is set.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"image": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Image if specified has precedence over baseImage, tag and sha combinations. Specifying the version is still necessary to ensure the VerneMQ Operator knows what version of VerneMQ is being configured.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"baseImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Base image to use for a VerneMQ deployment.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imagePullSecrets": {
+						SchemaProps: spec.SchemaProps{
+							Description: "An optional list of references to secrets in the same namespace to use for pulling vernemq images from registries see http://kubernetes.io/docs/user-guide/images#specifying-imagepullsecrets-on-a-pod",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/api/core/v1.LocalObjectReference"),
+									},
+								},
+							},
+						},
+					},
+					"securityContext": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SecurityContext holds pod-level security attributes and common container settings. This defaults to non root user with uid 10000 and gid 10000 for VerneMQ >1.7.0 and default PodSecurityContext for other versions.",
+							Ref:         ref("k8s.io/api/core/v1.PodSecurityContext"),
+						},
+					},
+					"storage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Storage spec to specify how storage shall be used.",
+							Ref:         ref("github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.StorageSpec"),
+						},
+					},
+					"containers": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Containers allows injecting additional containers.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/api/core/v1.Container"),
+									},
+								},
+							},
+						},
+					},
+					"resources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Define resources requests and limits for single Pods.",
+							Ref:         ref("k8s.io/api/core/v1.ResourceRequirements"),
+						},
+					},
+					"serviceAccountName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServiceAccountName is the name of the ServiceAccount to use to run the VerneMQ Pods.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"nodeSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Define which Nodes the Pods are scheduled on.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"priorityClassName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Priority class assigned to the Pods",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"affinity": {
+						SchemaProps: spec.SchemaProps{
+							Description: "If specified, the pod's scheduling constraints.",
+							Ref:         ref("k8s.io/api/core/v1.Affinity"),
+						},
+					},
+					"tolerations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "If specified, the pod's tolerations.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/api/core/v1.Toleration"),
+									},
+								},
+							},
+						},
+					},
+					"dropoutPeriodSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+					"terminationGracePeriodSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+					"secrets": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Secrets is a list of Secrets in the same namespace as the VerneMQ object, which shall be mounted into the VerneMQ Pods. The Secrets are mounted into /etc/vernemq/secrets/<secret-name>.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"configMaps": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ConfigMaps is a list of ConfigMaps in the same namespace as the VerneMQ object, which shall be mounted into the VerneMQ Pods. The ConfigMaps are mounted into /etc/vernemq/configmaps/<configmap-name>.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"vmqConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Defines the config that is used when starting VerneMQ (similar to vernemq.conf)",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"vmArgs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Defines the arguments passed to the erlang VM when starting VerneMQ",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"env": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Defines additional environment variables for the VerneMQ container The environment variables can be used to template the VMQConfig and VMArgs",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/api/core/v1.EnvVar"),
+									},
+								},
+							},
+						},
+					},
+					"externalPlugins": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Defines external plugins that have to be compiled and loaded into VerneMQ",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQPluginSpec"),
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
-		Dependencies: []string{},
+		Dependencies: []string{
+			"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.StorageSpec", "github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQPluginSpec", "k8s.io/api/core/v1.Affinity", "k8s.io/api/core/v1.Container", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.PodSecurityContext", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Toleration", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -79,7 +362,23 @@ func schema_pkg_apis_vernemq_v1alpha1_VerneMQStatus(ref common.ReferenceCallback
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "VerneMQStatus defines the observed state of VerneMQ",
-				Properties:  map[string]spec.Schema{},
+				Properties: map[string]spec.Schema{
+					"nodes": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Nodes are the names of the VerneMQ pods",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"nodes"},
 			},
 		},
 		Dependencies: []string{},

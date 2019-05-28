@@ -28,8 +28,8 @@ VerneMQ is the Schema for the vernemqs API
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
-| metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#objectmeta-v1-meta) | false |
-| spec |  | [VerneMQSpec](#vernemqspec) | false |
+| metadata | Standard object’s metadata. More info: https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#metadata | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#objectmeta-v1-meta) | false |
+| spec |  | [VerneMQSpec](#vernemqspec) | true |
 | status |  | [VerneMQStatus](#vernemqstatus) | false |
 
 [Back to TOC](#table-of-contents)
@@ -52,7 +52,7 @@ VerneMQPluginSpec defines the plugins to be fetched, compiled and loaded into th
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
 | applicationName |  | string | true |
-| repoUrl |  | string | true |
+| repoURL |  | string | true |
 | versionType |  | string | true |
 | version |  | string | true |
 
