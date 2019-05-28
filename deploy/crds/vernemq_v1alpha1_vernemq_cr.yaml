@@ -1,9 +1,0 @@
-apiVersion: vernemq.com/v1alpha1
-kind: VerneMQ
-metadata:
-  name: example
-spec:
-  # Add fields here
-  size: 2
-  tag: latest-alpine
-  baseImage: erlio/docker-vernemq
