@@ -13,11 +13,13 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.StorageSpec":       schema_pkg_apis_vernemq_v1alpha1_StorageSpec(ref),
-		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQ":           schema_pkg_apis_vernemq_v1alpha1_VerneMQ(ref),
-		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQPluginSpec": schema_pkg_apis_vernemq_v1alpha1_VerneMQPluginSpec(ref),
-		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQSpec":       schema_pkg_apis_vernemq_v1alpha1_VerneMQSpec(ref),
-		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQStatus":     schema_pkg_apis_vernemq_v1alpha1_VerneMQStatus(ref),
+		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.StorageSpec":               schema_pkg_apis_vernemq_v1alpha1_StorageSpec(ref),
+		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.TLSConfig":                 schema_pkg_apis_vernemq_v1alpha1_TLSConfig(ref),
+		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQ":                   schema_pkg_apis_vernemq_v1alpha1_VerneMQ(ref),
+		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQExternalPluginSpec": schema_pkg_apis_vernemq_v1alpha1_VerneMQExternalPluginSpec(ref),
+		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQListenerSpec":       schema_pkg_apis_vernemq_v1alpha1_VerneMQListenerSpec(ref),
+		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQSpec":               schema_pkg_apis_vernemq_v1alpha1_VerneMQSpec(ref),
+		"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQStatus":             schema_pkg_apis_vernemq_v1alpha1_VerneMQStatus(ref),
 	}
 }
 
@@ -44,6 +46,69 @@ func schema_pkg_apis_vernemq_v1alpha1_StorageSpec(ref common.ReferenceCallback) 
 		},
 		Dependencies: []string{
 			"k8s.io/api/core/v1.EmptyDirVolumeSource", "k8s.io/api/core/v1.PersistentVolumeClaim"},
+	}
+}
+
+func schema_pkg_apis_vernemq_v1alpha1_TLSConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TLSConfig defines the TLS configuration used for a TLS enabled listener",
+				Properties: map[string]spec.Schema{
+					"caFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The path to the cafile containing the PEM encoded CA certificates that are trusted by the server.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"certFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The path to the PEM encoded server certificate",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"keyFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The path to the PEM encoded key file",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ciphers": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The list of allowed ciphers, each separated by a colon",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"requireCertificate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Use client certificates to authenticate your clients",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"useIdentityAsUsername": {
+						SchemaProps: spec.SchemaProps{
+							Description: "If RequreCertificate is true then the CN value from the client certificate is used as the username for authentication",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"crlFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "If RequreCertificate is true, you can use a certificate revocation list file to revoke access to particular client certificates. The file has to be PEM encoded.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"caFile", "certFile", "keyFile"},
+			},
+		},
+		Dependencies: []string{},
 	}
 }
 
@@ -86,11 +151,11 @@ func schema_pkg_apis_vernemq_v1alpha1_VerneMQ(ref common.ReferenceCallback) comm
 	}
 }
 
-func schema_pkg_apis_vernemq_v1alpha1_VerneMQPluginSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_vernemq_v1alpha1_VerneMQExternalPluginSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "VerneMQPluginSpec defines the plugins to be fetched, compiled and loaded into the VerneMQ container",
+				Description: "VerneMQExternalPluginSpec defines the plugins to be fetched, compiled and loaded into the VerneMQ container",
 				Properties: map[string]spec.Schema{
 					"applicationName": {
 						SchemaProps: spec.SchemaProps{
@@ -121,6 +186,90 @@ func schema_pkg_apis_vernemq_v1alpha1_VerneMQPluginSpec(ref common.ReferenceCall
 			},
 		},
 		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_apis_vernemq_v1alpha1_VerneMQListenerSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VerneMQListenerSpec defines the listeners to be started",
+				Properties: map[string]spec.Schema{
+					"address": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"port": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"mountpoint": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"nrOfAcceptors": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+					"maxConnections": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int64",
+						},
+					},
+					"protocolVersions": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"integer"},
+										Format: "byte",
+									},
+								},
+							},
+						},
+					},
+					"webSocket": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
+					"proxyProtocol": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Enable PROXY v2 protocol for this listener",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"proxyProtocolUseCommonNameAsUsername": {
+						SchemaProps: spec.SchemaProps{
+							Description: "If PROXY v2 is enabled for this listener use this flag to decide if the common name should replace the MQTT username Enabled by default (use `=false`) to disable",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"tlsConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The TLS Config.",
+							Ref:         ref("github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.TLSConfig"),
+						},
+					},
+				},
+				Required: []string{"address", "port"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.TLSConfig"},
 	}
 }
 
@@ -343,7 +492,34 @@ func schema_pkg_apis_vernemq_v1alpha1_VerneMQSpec(ref common.ReferenceCallback) 
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQPluginSpec"),
+										Ref: ref("github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQExternalPluginSpec"),
+									},
+								},
+							},
+						},
+					},
+					"plugins": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Defines the used plugins (requires the plugin to be part of the image)",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"listeners": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Defines the installed listeners",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQListenerSpec"),
 									},
 								},
 							},
@@ -353,7 +529,7 @@ func schema_pkg_apis_vernemq_v1alpha1_VerneMQSpec(ref common.ReferenceCallback) 
 			},
 		},
 		Dependencies: []string{
-			"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.StorageSpec", "github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQPluginSpec", "k8s.io/api/core/v1.Affinity", "k8s.io/api/core/v1.Container", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.PodSecurityContext", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Toleration", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.StorageSpec", "github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQExternalPluginSpec", "github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.VerneMQListenerSpec", "k8s.io/api/core/v1.Affinity", "k8s.io/api/core/v1.Container", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.LocalObjectReference", "k8s.io/api/core/v1.PodSecurityContext", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Toleration", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
