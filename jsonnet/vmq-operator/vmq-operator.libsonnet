@@ -2,7 +2,7 @@ local k = import 'ksonnet/ksonnet.beta.3/k.libsonnet';
 
 {
   _config+:: {
-    vmqNamespace: 'messaging',
+    messagingNamespace: 'default',
 
     vernemqOperator+:: {
 
@@ -28,16 +28,19 @@ local k = import 'ksonnet/ksonnet.beta.3/k.libsonnet';
   vernemqOperator+:: {
     '0vernemqCustomResourceDefinition': import 'vernemq-crd.libsonnet',
 
+    '0namespace': k.core.v1.namespace.new($._config.messagingNamespace),
+
     roleBinding:
       local roleBinding = k.rbac.v1.roleBinding;
 
       roleBinding.new() +
       roleBinding.mixin.metadata.withLabels($._config.vernemqOperator.commonLabels) +
       roleBinding.mixin.metadata.withName('vmq-operator') +
+      roleBinding.mixin.metadata.withNamespace($._config.messagingNamespace) +
       roleBinding.mixin.roleRef.withApiGroup('rbac.authorization.k8s.io') +
       roleBinding.mixin.roleRef.withName('vmq-operator') +
       roleBinding.mixin.roleRef.mixinInstance({ kind: 'Role' }) +
-      roleBinding.withSubjects([{ kind: 'ServiceAccount', name: 'vmq-operator', namespace: $._config.vmqNamespace }]),
+      roleBinding.withSubjects([{ kind: 'ServiceAccount', name: 'vmq-operator', namespace: $._config.messagingNamespace }]),
 
     role:
       local role = k.rbac.v1.role;
@@ -61,7 +64,7 @@ local k = import 'ksonnet/ksonnet.beta.3/k.libsonnet';
       local podRule = policyRule.new() +
                       policyRule.withApiGroups(['']) +
                       policyRule.withResources(['pods']) +
-                      policyRule.withVerbs(['list', 'delete']);
+                      policyRule.withVerbs(['get', 'list', 'delete']);
 
       local namespaceRule = policyRule.new() +
                             policyRule.withApiGroups(['']) +
@@ -78,6 +81,7 @@ local k = import 'ksonnet/ksonnet.beta.3/k.libsonnet';
       role.new() +
       role.mixin.metadata.withLabels($._config.vernemqOperator.commonLabels) +
       role.mixin.metadata.withName('vmq-operator') +
+      role.mixin.metadata.withNamespace($._config.messagingNamespace) +
       role.withRules(rules),
    
     deployment:
@@ -91,7 +95,7 @@ local k = import 'ksonnet/ksonnet.beta.3/k.libsonnet';
                            container.envType.new('OPERATOR_NAME', 'vmq-operator')]);
 
       deployment.new('vmq-operator', 1, operatorContainer, $._config.vernemqOperator.commonLabels) +
-      deployment.mixin.metadata.withNamespace($._config.vmqNamespace) +
+      deployment.mixin.metadata.withNamespace($._config.messagingNamespace) +
       deployment.mixin.metadata.withLabels($._config.vernemqOperator.commonLabels) +
       deployment.mixin.spec.selector.withMatchLabels($._config.vernemqOperator.deploymentSelectorLabels) +
       deployment.mixin.spec.template.spec.withNodeSelector({ 'beta.kubernetes.io/os': 'linux' }) +
@@ -104,6 +108,6 @@ local k = import 'ksonnet/ksonnet.beta.3/k.libsonnet';
 
       serviceAccount.new('vmq-operator') +
       serviceAccount.mixin.metadata.withLabels($._config.vernemqOperator.commonLabels) +
-      serviceAccount.mixin.metadata.withNamespace($._config.vmqNamespace),
+      serviceAccount.mixin.metadata.withNamespace($._config.messagingNamespace),
   },
 }

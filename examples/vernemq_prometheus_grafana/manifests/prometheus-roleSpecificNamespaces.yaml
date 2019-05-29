@@ -36,7 +36,7 @@ items:
   kind: Role
   metadata:
     name: prometheus-k8s
-    namespace: vmq
+    namespace: messaging
   rules:
   - apiGroups:
     - ""
