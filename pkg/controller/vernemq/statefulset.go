@@ -454,7 +454,7 @@ func makeGlobalVerneMQConf(instance *vernemqv1alpha1.VerneMQ) string {
 	// belongs here:
 	config := `metadata_plugin = vmq_swc
 listener.vmq.clustering = $MY_POD_IP:44053
-listener.http.default = $MY_POD_IP:8888
+listener.http.default = 0.0.0.0:8888
 plugins.vmq_passwd = off
 plugins.vmq_acl = off
 plugins.vmq_k8s.path = /vernemq/plugins/_build/default
