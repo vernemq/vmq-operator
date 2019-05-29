@@ -7,6 +7,6 @@ local kp =
 };
  
 { ['0vernemq-operator-' + name]: kp.vernemqOperator[name] for name in std.objectFields(kp.vernemqOperator) } +
-{ ['vernemq-' + name]: kp.vernemq[name] for name in std.objectFields(kp.vernemq) }
+{ ['vernemq-' + name]: kp.vernemq[name] for name in std.objectFields(kp.vernemq) if name != 'serviceMonitor' }
 
 
