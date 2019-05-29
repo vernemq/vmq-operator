@@ -67,10 +67,65 @@ spec:
               items:
                 type: object
               type: array
+            listeners:
+              items:
+                properties:
+                  address:
+                    type: string
+                  maxConnections:
+                    format: int32
+                    type: integer
+                  mountpoint:
+                    type: string
+                  nrOfAcceptors:
+                    format: int32
+                    type: integer
+                  port:
+                    type: uint16
+                  protocolVersions:
+                    items:
+                      type: byte
+                    type: array
+                  proxyProtocol:
+                    type: boolean
+                  proxyProtocolUseCommonNameAsUsername:
+                    type: boolean
+                  tlsConfig:
+                    properties:
+                      caFile:
+                        type: string
+                      certFile:
+                        type: string
+                      ciphers:
+                        type: string
+                      crlFile:
+                        type: string
+                      keyFile:
+                        type: string
+                      requireCertificate:
+                        type: boolean
+                      useIdentityAsUsername:
+                        type: boolean
+                    required:
+                    - caFile
+                    - certFile
+                    - keyFile
+                    type: object
+                  webSocket:
+                    type: boolean
+                required:
+                - address
+                - port
+                type: object
+              type: array
             nodeSelector:
               additionalProperties:
                 type: string
               type: object
+            plugins:
+              items:
+                type: string
+              type: array
             podMetadata:
               type: object
             priorityClassName:
