@@ -1,0 +1,12 @@
+apiVersion: vernemq.com/v1alpha1
+kind: VerneMQ
+metadata:
+  labels:
+    vernemq: k8s
+  name: k8s
+  namespace: messaging
+spec:
+  baseImage: erlio/docker-vernemq
+  serviceAccountName: vernemq-k8s
+  size: 2
+  version: 1.8.0

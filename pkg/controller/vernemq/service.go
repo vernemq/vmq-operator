@@ -26,24 +26,12 @@ func makeStatefulSetService(instance *vernemqv1alpha1.VerneMQ) *v1.Service {
 		},
 		Spec: v1.ServiceSpec{
 			ClusterIP: "None",
-			Ports: []v1.ServicePort{
-				{
-					Name:       "mqtt",
-					Port:       1883,
-					TargetPort: intstr.FromString("mqtt"),
-				},
-				{
-					Name:       "http",
-					Port:       8888,
-					TargetPort: intstr.FromString("http"),
-				},
-			},
 			Selector: map[string]string{
 				"app": "vernemq",
 			},
 		},
 	}
-	svc.Name = serviceName(instance.Name)
+	svc.Name = serviceName(instance.Name + "-discovery")
 	svc.Namespace = instance.Namespace
 	return svc
 }
