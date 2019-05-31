@@ -31,7 +31,7 @@ func makeStatefulSetService(instance *vernemqv1alpha1.VerneMQ) *v1.Service {
 			},
 		},
 	}
-	svc.Name = serviceName(instance.Name + "-discovery")
+	svc.Name = serviceName(instance.Name)
 	svc.Namespace = instance.Namespace
 	return svc
 }

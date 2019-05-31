@@ -34,14 +34,16 @@ func schema_pkg_apis_vernemq_v1alpha1_ConfigItem(ref common.ReferenceCallback) c
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Description: "Defines the name of the config",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"value": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Description: "Defines the value of the config",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},
@@ -60,44 +62,51 @@ func schema_pkg_apis_vernemq_v1alpha1_Listener(ref common.ReferenceCallback) com
 				Properties: map[string]spec.Schema{
 					"address": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Description: "Defines the Network address the listener accepts connections on. Alternatively pass the name of the network interface.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"port": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int32",
+							Description: "Defines the TCP port",
+							Type:        []string{"integer"},
+							Format:      "int32",
 						},
 					},
 					"mountpoint": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Description: "Defines the mountpoint for this listener. Defaults to \"\"",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"nrOfAcceptors": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int64",
+							Description: "Defines the number of TCP acceptor processes.",
+							Type:        []string{"integer"},
+							Format:      "int64",
 						},
 					},
 					"maxConnections": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"integer"},
-							Format: "int64",
+							Description: "Defines the number of allowed concurrent TCP connections.",
+							Type:        []string{"integer"},
+							Format:      "int64",
 						},
 					},
 					"protocolVersions": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Description: "Defines the allowed MQTT protocol version. Specified as a comma separated list e.g. \"3,4,5\"",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"websocket": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
-							Format: "",
+							Description: "Specifies that this listener accepts connections over HTTP websockets.",
+							Type:        []string{"boolean"},
+							Format:      "",
 						},
 					},
 					"proxyProtocol": {
@@ -165,26 +174,30 @@ func schema_pkg_apis_vernemq_v1alpha1_PluginSource(ref common.ReferenceCallback)
 				Properties: map[string]spec.Schema{
 					"applicationName": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Description: "The name of the plugin application",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"repoURL": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Description: "The URL of the Git repository",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"versionType": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Description: "The type to checkout, can be \"branch\", \"tag\", or \"commit\"",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"version": {
 						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
+							Description: "The version to checkout, can be name of the branch or tag, or the Git commit ref",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},
@@ -203,7 +216,8 @@ func schema_pkg_apis_vernemq_v1alpha1_ReloadableConfig(ref common.ReferenceCallb
 				Properties: map[string]spec.Schema{
 					"plugins": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
+							Description: "Defines the plugins to enable when VerneMQ starts",
+							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
@@ -215,7 +229,8 @@ func schema_pkg_apis_vernemq_v1alpha1_ReloadableConfig(ref common.ReferenceCallb
 					},
 					"listeners": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
+							Description: "Defines the listeners to enable when VerneMQ starts",
+							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
@@ -227,7 +242,8 @@ func schema_pkg_apis_vernemq_v1alpha1_ReloadableConfig(ref common.ReferenceCallb
 					},
 					"configs": {
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
+							Description: "Configures VerneMQ, valid are all the properties that can be set with the `vmq-admin set` command",
+							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{

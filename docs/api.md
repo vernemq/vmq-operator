@@ -22,8 +22,8 @@ ConfigItem defines a single reloadable VerneMQ config item
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
-| name |  | string | true |
-| value |  | string | true |
+| name | Defines the name of the config | string | true |
+| value | Defines the value of the config | string | true |
 
 [Back to TOC](#table-of-contents)
 
@@ -33,13 +33,13 @@ Listener defines the listeners to be started !!! Make sure that the JSON name of
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
-| address |  | string | true |
-| port |  | uint16 | true |
-| mountpoint |  | string | false |
-| nrOfAcceptors |  | uint32 | false |
-| maxConnections |  | uint32 | false |
-| protocolVersions |  | string | false |
-| websocket |  | bool | false |
+| address | Defines the Network address the listener accepts connections on. Alternatively pass the name of the network interface. | string | true |
+| port | Defines the TCP port | uint16 | true |
+| mountpoint | Defines the mountpoint for this listener. Defaults to \"\" | string | false |
+| nrOfAcceptors | Defines the number of TCP acceptor processes. | uint32 | false |
+| maxConnections | Defines the number of allowed concurrent TCP connections. | uint32 | false |
+| protocolVersions | Defines the allowed MQTT protocol version. Specified as a comma separated list e.g. \"3,4,5\" | string | false |
+| websocket | Specifies that this listener accepts connections over HTTP websockets. | bool | false |
 | proxyProtocol | Enable PROXY v2 protocol for this listener | bool | false |
 | useCnAsUsername | If PROXY v2 is enabled for this listener use this flag to decide if the common name should replace the MQTT username Enabled by default (use `=false`) to disable | bool | false |
 | tlsConfig | The TLS Config. | *[TLSConfig](#tlsconfig) | false |
@@ -63,10 +63,10 @@ PluginSource defines the plugins to be fetched, compiled and loaded into the Ver
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
-| applicationName |  | string | true |
-| repoURL |  | string | true |
-| versionType |  | string | true |
-| version |  | string | true |
+| applicationName | The name of the plugin application | string | true |
+| repoURL | The URL of the Git repository | string | true |
+| versionType | The type to checkout, can be \"branch\", \"tag\", or \"commit\" | string | true |
+| version | The version to checkout, can be name of the branch or tag, or the Git commit ref | string | true |
 
 [Back to TOC](#table-of-contents)
 
@@ -76,9 +76,9 @@ ReloadableConfig defines the reloadable parts of the VerneMQ configuration
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
-| plugins |  | [][Plugin](#plugin) | false |
-| listeners |  | [][Listener](#listener) | false |
-| configs |  | [][ConfigItem](#configitem) | false |
+| plugins | Defines the plugins to enable when VerneMQ starts | [][Plugin](#plugin) | false |
+| listeners | Defines the listeners to enable when VerneMQ starts | [][Listener](#listener) | false |
+| configs | Configures VerneMQ, valid are all the properties that can be set with the `vmq-admin set` command | [][ConfigItem](#configitem) | false |
 
 [Back to TOC](#table-of-contents)
 
