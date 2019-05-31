@@ -4,12 +4,83 @@ This Document documents the types introduced by the VerneMQ Operator to be consu
 > Note this document is generated from code comments. When contributing a change to this document please do so by changing the code comments.
 
 ## Table of Contents
+* [ConfigItem](#configitem)
+* [Listener](#listener)
+* [Plugin](#plugin)
+* [PluginSource](#pluginsource)
+* [ReloadableConfig](#reloadableconfig)
 * [StorageSpec](#storagespec)
+* [TLSConfig](#tlsconfig)
 * [VerneMQ](#vernemq)
 * [VerneMQList](#vernemqlist)
-* [VerneMQPluginSpec](#vernemqpluginspec)
 * [VerneMQSpec](#vernemqspec)
 * [VerneMQStatus](#vernemqstatus)
+
+## ConfigItem
+
+ConfigItem defines a single reloadable VerneMQ config item
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| name |  | string | true |
+| value |  | string | true |
+
+[Back to TOC](#table-of-contents)
+
+## Listener
+
+Listener defines the listeners to be started !!! Make sure that the JSON name of the property converted to snake-case results in the value accepted by vmq-admin listener start
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| address |  | string | true |
+| port |  | uint16 | true |
+| mountpoint |  | string | false |
+| nrOfAcceptors |  | uint32 | false |
+| maxConnections |  | uint32 | false |
+| protocolVersions |  | string | false |
+| websocket |  | bool | false |
+| proxyProtocol | Enable PROXY v2 protocol for this listener | bool | false |
+| useCnAsUsername | If PROXY v2 is enabled for this listener use this flag to decide if the common name should replace the MQTT username Enabled by default (use `=false`) to disable | bool | false |
+| tlsConfig | The TLS Config. | *[TLSConfig](#tlsconfig) | false |
+
+[Back to TOC](#table-of-contents)
+
+## Plugin
+
+Plugin defines the plugins to be enabled by VerneMQ
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| name | The name of the plugin application | string | true |
+| path | The path to the plugin application | string | false |
+
+[Back to TOC](#table-of-contents)
+
+## PluginSource
+
+PluginSource defines the plugins to be fetched, compiled and loaded into the VerneMQ container
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| applicationName |  | string | true |
+| repoURL |  | string | true |
+| versionType |  | string | true |
+| version |  | string | true |
+
+[Back to TOC](#table-of-contents)
+
+## ReloadableConfig
+
+ReloadableConfig defines the reloadable parts of the VerneMQ configuration
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| plugins |  | [][Plugin](#plugin) | false |
+| listeners |  | [][Listener](#listener) | false |
+| configs |  | [][ConfigItem](#configitem) | false |
+
+[Back to TOC](#table-of-contents)
 
 ## StorageSpec
 
@@ -19,6 +90,22 @@ StorageSpec defines the configured storage for VerneMQ Cluster nodes. If neither
 | ----- | ----------- | ------ | -------- |
 | emptyDir | EmptyDirVolumeSource to be used by the VerneMQ StatefulSets. If specified, used in place of any volumeClaimTemplate. More info: https://kubernetes.io/docs/concepts/storage/volumes/#emptydir | *[v1.EmptyDirVolumeSource](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#emptydirvolumesource-v1-core) | false |
 | volumeClaimTemplate | A PVC spec to be used by the VerneMQ StatefulSets. | [v1.PersistentVolumeClaim](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#persistentvolumeclaim-v1-core) | false |
+
+[Back to TOC](#table-of-contents)
+
+## TLSConfig
+
+TLSConfig defines the TLS configuration used for a TLS enabled listener !!! Make sure that the JSON name of the property converted to snake-case results in the value accepted by vmq-admin listener start
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| cafile | The path to the cafile containing the PEM encoded CA certificates that are trusted by the server. | string | true |
+| certfile | The path to the PEM encoded server certificate | string | true |
+| keyfile | The path to the PEM encoded key file | string | true |
+| ciphers | The list of allowed ciphers, each separated by a colon | string | false |
+| requireCertificate | Use client certificates to authenticate your clients | bool | false |
+| useIdentityAsUsername | If RequreCertificate is true then the CN value from the client certificate is used as the username for authentication | bool | false |
+| crlfile | If RequreCertificate is true, you can use a certificate revocation list file to revoke access to particular client certificates. The file has to be PEM encoded. | string | false |
 
 [Back to TOC](#table-of-contents)
 
@@ -42,19 +129,6 @@ VerneMQList contains a list of VerneMQ
 | ----- | ----------- | ------ | -------- |
 | metadata |  | [metav1.ListMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#listmeta-v1-meta) | false |
 | items |  | [][VerneMQ](#vernemq) | true |
-
-[Back to TOC](#table-of-contents)
-
-## VerneMQPluginSpec
-
-VerneMQPluginSpec defines the plugins to be fetched, compiled and loaded into the VerneMQ container
-
-| Field | Description | Scheme | Required |
-| ----- | ----------- | ------ | -------- |
-| applicationName |  | string | true |
-| repoURL |  | string | true |
-| versionType |  | string | true |
-| version |  | string | true |
 
 [Back to TOC](#table-of-contents)
 
@@ -88,7 +162,8 @@ VerneMQSpec defines the desired state of VerneMQ
 | vmqConfig | Defines the config that is used when starting VerneMQ (similar to vernemq.conf) | string | false |
 | vmArgs | Defines the arguments passed to the erlang VM when starting VerneMQ | string | false |
 | env | Defines additional environment variables for the VerneMQ container The environment variables can be used to template the VMQConfig and VMArgs | []v1.EnvVar | false |
-| externalPlugins | Defines external plugins that have to be compiled and loaded into VerneMQ | [][VerneMQPluginSpec](#vernemqpluginspec) | false |
+| externalPlugins | Defines external plugins that have to be compiled and loaded into VerneMQ | [][PluginSource](#pluginsource) | false |
+| config | Defines the reloadable config that VerneMQ regularly checks and applies | [ReloadableConfig](#reloadableconfig) | false |
 
 [Back to TOC](#table-of-contents)
 
