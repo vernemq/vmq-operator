@@ -9,6 +9,7 @@ all: generate
 .PHONY: generate
 generate: operator_sdk_gen jsonnet/vmq-operator/vernemq-crd.libsonnet examples docs
 
+.PHONY: docs
 docs:
 	go run github.com/vernemq/vmq-operator/cmd/apidoc > docs/api.md
 
@@ -21,11 +22,14 @@ examples:
 	./build.sh vernemq-grafana-prometheus.jsonnet vernemq_grafana_prometheus; \
 	./build.sh only-vernemq.jsonnet only_vernemq
 
+.PHONY: operator_sdk_gen
 operator_sdk_gen: operator_sdk_gen_k8s operator_sdk_gen_openapi
 
+.PHONY: operator_sdk_gen_k8s
 operator_sdk_gen_k8s:
 	operator-sdk generate k8s
 
+.PHONY: operator_sdk_gen_openapi
 operator_sdk_gen_openapi:
 	operator-sdk generate openapi
 
