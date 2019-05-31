@@ -197,6 +197,8 @@ apply_listener_config([ListenerConfig|Rest], Acc, State) ->
                                              false ->
                                                  % flag
                                                  CAcc;
+                                             Int when is_integer(Int) ->
+                                                 ["--" ++ to_snake_case(K) ++ "=" ++ integer_to_list(V) | CAcc];
                                              _ ->
                                                  ["--" ++ to_snake_case(K) ++ "=" ++ V | CAcc]
                                          end;
