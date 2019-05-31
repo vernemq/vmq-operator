@@ -34,7 +34,6 @@ const (
 	storageDir        = "/vernemq/data"
 	configmapsDir     = "/vernemq/etc/configmaps/"
 	secretsDir        = "/vernemq/etc/secrets/"
-	configFilename    = "vernemq.yaml.gz"
 	sSetInputHashName = "vernemq-operator-input-hash"
 
 	defaultVerneMQVersion   = "1.7.1-2-alpine"
@@ -129,13 +128,6 @@ func (r *ReconcileVerneMQ) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	// Create empty Secret if it doesn't exist. See comment above.
-	secret := makeEmptyConfigurationSecret(instance)
-	err = r.createOrUpdate(secret.Name, secret.Namespace, secret)
-	if err != nil {
-		return reconcile.Result{}, pkgerr.Wrap(err, "creating empty config secret failed")
-	}
-
 	deploymentService := makeDeploymentService(instance)
 	err = r.client.Create(context.TODO(), deploymentService)
 	if err != nil && errors.IsAlreadyExists(err) == false {
@@ -167,12 +159,14 @@ func (r *ReconcileVerneMQ) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, pkgerr.Wrap(err, "listing pods failed")
 	}
 
-	emptyConfig := makeEmptyVerneMQConfigMap(instance)
-	err = r.client.Create(context.TODO(), emptyConfig)
+	// this will create config.yaml
+	configSecret := makeConfigSecretFromSpec(instance)
+	err = r.createOrUpdate(configSecret.Name, configSecret.Namespace, configSecret)
 	if err != nil && errors.IsAlreadyExists(err) == false {
-		return reconcile.Result{}, pkgerr.Wrap(err, "creating empty config map failed")
+		return reconcile.Result{}, pkgerr.Wrap(err, "creating  config Secret failed")
 	}
 
+	// this will create vernemq.clusterview
 	clusterViewSecret := makeClusterViewSecret(instance, podList)
 	err = r.createOrUpdate(clusterViewSecret.Name, clusterViewSecret.Namespace, clusterViewSecret)
 	if err != nil {
@@ -248,60 +242,6 @@ func subPathForStorage(s *vernemqv1alpha1.StorageSpec) string {
 		return ""
 	}
 	return "vernemq-db"
-}
-func makeEmptyConfigurationSecret(instance *vernemqv1alpha1.VerneMQ) *v1.Secret {
-	s := makeConfigSecret(instance)
-	s.Namespace = instance.Namespace
-
-	s.ObjectMeta.Annotations = map[string]string{
-		"empty": "true",
-	}
-
-	return s
-}
-
-func makeConfigSecret(instance *vernemqv1alpha1.VerneMQ) *v1.Secret {
-	boolTrue := true
-	return &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   configSecretName(instance.Name),
-			Labels: labelsForVerneMQ(instance.Name),
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         instance.APIVersion,
-					BlockOwnerDeletion: &boolTrue,
-					Controller:         &boolTrue,
-					Kind:               instance.Kind,
-					Name:               instance.Name,
-					UID:                instance.UID,
-				},
-			},
-		},
-		Type:       "Opaque",
-		StringData: map[string]string{},
-	}
-}
-
-func makeEmptyVerneMQConfigMap(instance *vernemqv1alpha1.VerneMQ) *v1.ConfigMap {
-	boolTrue := true
-	return &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vernemq-conf",
-			Namespace: instance.Namespace,
-			Labels:    labelsForVerneMQ(instance.Name),
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         instance.APIVersion,
-					BlockOwnerDeletion: &boolTrue,
-					Controller:         &boolTrue,
-					Kind:               instance.Kind,
-					Name:               instance.Name,
-					UID:                instance.UID,
-				},
-			},
-		},
-		Data: map[string]string{"config.yaml": ""},
-	}
 }
 
 func makeClusterViewSecret(instance *vernemqv1alpha1.VerneMQ, podList *corev1.PodList) *v1.Secret {

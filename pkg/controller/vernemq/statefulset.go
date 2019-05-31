@@ -201,12 +201,10 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 
 	volumes := []v1.Volume{
 		{
-			Name: "vernemq-conf",
+			Name: "vernemq-yaml",
 			VolumeSource: v1.VolumeSource{
-				ConfigMap: &v1.ConfigMapVolumeSource{
-					LocalObjectReference: v1.LocalObjectReference{
-						Name: "vernemq-conf",
-					},
+				Secret: &v1.SecretVolumeSource{
+					SecretName: "vernemq-yaml",
 					Items: []v1.KeyToPath{
 						{
 							Key:  "config.yaml",
@@ -246,12 +244,11 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 			SubPath:   subPathForStorage(instance.Spec.Storage),
 		},
 		{
-			Name:      "vernemq-conf",
+			Name:      "vernemq-yaml",
 			MountPath: configmapsDir,
 		},
 		{
-			Name: "vernemq-clusterview",
-			//MountPath: configmapsDir,
+			Name:      "vernemq-clusterview",
 			MountPath: fmt.Sprintf("%s/clusterview", configmapsDir),
 		},
 	}
