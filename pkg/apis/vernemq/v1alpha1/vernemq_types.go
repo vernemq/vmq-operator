@@ -88,18 +88,25 @@ type VerneMQSpec struct {
 // ReloadableConfig defines the reloadable parts of the VerneMQ configuration
 // +k8s:openapi-gen=true
 type ReloadableConfig struct {
-	Plugins   []Plugin     `json:"plugins,omitempty"`
-	Listeners []Listener   `json:"listeners,omitempty"`
-	Configs   []ConfigItem `json:"configs,omitempty"`
+	// Defines the plugins to enable when VerneMQ starts
+	Plugins []Plugin `json:"plugins,omitempty"`
+	// Defines the listeners to enable when VerneMQ starts
+	Listeners []Listener `json:"listeners,omitempty"`
+	// Configures VerneMQ, valid are all the properties that can be set with the `vmq-admin set` command
+	Configs []ConfigItem `json:"configs,omitempty"`
 }
 
 // PluginSource defines the plugins to be fetched, compiled and loaded into the VerneMQ container
 // +k8s:openapi-gen=true
 type PluginSource struct {
+	// The name of the plugin application
 	ApplicationName string `json:"applicationName"`
-	RepoURL         string `json:"repoURL"`
-	VersionType     string `json:"versionType"`
-	Version         string `json:"version"`
+	// The URL of the Git repository
+	RepoURL string `json:"repoURL"`
+	// The type to checkout, can be "branch", "tag", or "commit"
+	VersionType string `json:"versionType"`
+	// The version to checkout, can be name of the branch or tag, or the Git commit ref
+	Version string `json:"version"`
 }
 
 // Plugin defines the plugins to be enabled by VerneMQ
@@ -114,7 +121,9 @@ type Plugin struct {
 // ConfigItem defines a single reloadable VerneMQ config item
 // +k8s:openapi-gen=true
 type ConfigItem struct {
-	Name  string `json:"name"`
+	// Defines the name of the config
+	Name string `json:"name"`
+	// Defines the value of the config
 	Value string `json:"value"`
 }
 
@@ -122,13 +131,20 @@ type ConfigItem struct {
 // !!! Make sure that the JSON name of the property converted to snake-case results in the value accepted by vmq-admin listener start
 // +k8s:openapi-gen=true
 type Listener struct {
-	Address          string `json:"address"`
-	Port             uint16 `json:"port"`
-	Mountpoint       string `json:"mountpoint,omitempty"`
-	NrOfAcceptors    uint32 `json:"nrOfAcceptors,omitempty"`
-	MaxConnections   uint32 `json:"maxConnections,omitempty"`
+	// Defines the Network address the listener accepts connections on. Alternatively pass the name of the network interface.
+	Address string `json:"address"`
+	// Defines the TCP port
+	Port uint16 `json:"port"`
+	// Defines the mountpoint for this listener. Defaults to ""
+	Mountpoint string `json:"mountpoint,omitempty"`
+	// Defines the number of TCP acceptor processes.
+	NrOfAcceptors uint32 `json:"nrOfAcceptors,omitempty"`
+	// Defines the number of allowed concurrent TCP connections.
+	MaxConnections uint32 `json:"maxConnections,omitempty"`
+	// Defines the allowed MQTT protocol version. Specified as a comma separated list e.g. "3,4,5"
 	ProtocolVersions string `json:"protocolVersions,omitempty"`
-	Websocket        bool   `json:"websocket,omitempty"`
+	// Specifies that this listener accepts connections over HTTP websockets.
+	Websocket bool `json:"websocket,omitempty"`
 	// Enable PROXY v2 protocol for this listener
 	ProxyProtocol bool `json:"proxyProtocol,omitempty"`
 	// If PROXY v2 is enabled for this listener use this flag to decide if the common name should replace the MQTT username

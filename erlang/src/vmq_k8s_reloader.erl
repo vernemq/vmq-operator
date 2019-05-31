@@ -180,10 +180,22 @@ apply_plugins_config(null, NewState, _OldState) ->
 to_snake_case(S) ->
     string:lowercase(re:replace(S, "[A-Z]", "_&", [{return, list}, global])).
 
+maybe_addr_from_interface(AddrOrIf) ->
+    case inet:parse_address(AddrOrIf) of
+        {ok, _} ->
+            AddrOrIf;
+        {error, _} ->
+            %% maybe interface
+            {ok, Interfaces} = inet:getifaddrs(),
+            Interface = proplists:get_value(AddrOrIf, Interfaces, []),
+            inet:ntoa(proplists:get_value(addr, Interface, {127, 0, 0, 1}))
+    end.
+
 apply_listener_config([ListenerConfig|Rest], Acc, State) ->
     case {proplists:get_value("address", ListenerConfig),
           proplists:get_value("port", ListenerConfig)} of
-        {Addr, IPort} when Addr =/= undefined, IPort =/= undefined ->
+        {AddrOrIf, IPort} when AddrOrIf =/= undefined, IPort =/= undefined ->
+            Addr = maybe_addr_from_interface(AddrOrIf),
             Port = integer_to_list(IPort),
             ListenerConfig1 = [C || C = {K, _} <- ListenerConfig,
                                     not lists:member(K, ["address", "port", "tlsConfig"])],
