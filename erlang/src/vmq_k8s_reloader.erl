@@ -101,17 +101,17 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 
 handle_info(check_config, #state{map=ConfigState0, clustering_state=ClusteringState0} = State0) ->
-    ConfigFile = os:getenv("VMQ_CONFIGMAP", "/vernemq/etc/vernemq.yaml"),
+    ConfigFile = os:getenv("VMQ_CONFIGMAP", "/vernemq/etc/config.yaml"),
     ConfigState1 =
     try yamerl_constr:file(ConfigFile) of
         Config ->
             apply_config(Config, ConfigState0)
     catch
         throw:{yamerl_exception, Exception} ->
-            lager:error("Can't parse YAML ConfigMap ~p", [Exception]),
+            lager:error("Can't parse YAML config ~p", [Exception]),
             ConfigState0;
         E:R ->
-            lager:error("Error while parsing ConfigMap ~p ~p", [E, R]),
+            lager:error("Error while parsing config ~p ~p", [E, R]),
             ConfigState0
     end,
     ClusterviewFile = os:getenv("VMQ_CLUSTERVIEW", "/vernemq/etc/configmaps/clusterview/clusterview.yaml"),
@@ -136,7 +136,7 @@ apply_config([Config|_], CurrentState) ->
     State0 = #{},
     State1 = apply_plugins_config(proplists:get_value("plugins", Config, []), State0, CurrentState),
     State2 = apply_listener_config(proplists:get_value("listeners", Config, []), State1, CurrentState),
-    State3 = apply_value_config(proplists:get_value("config", Config, []), State2, CurrentState),
+    State3 = apply_value_config(proplists:get_value("configs", Config, []), State2, CurrentState),
     State3;
 apply_config([], CurrentState) ->
     % empty file
@@ -177,47 +177,43 @@ apply_plugins_config(null, NewState, _OldState) ->
     %% empty list is decoded as null
     NewState.
 
+to_snake_case(S) ->
+    string:lowercase(re:replace(S, "[A-Z]", "_&", [{return, list}, global])).
+
 apply_listener_config([ListenerConfig|Rest], Acc, State) ->
     case {proplists:get_value("address", ListenerConfig),
           proplists:get_value("port", ListenerConfig)} of
         {Addr, IPort} when Addr =/= undefined, IPort =/= undefined ->
             Port = integer_to_list(IPort),
-            Flags0 = lists:foldl(fun({K, V}, CAcc) when K =/= "address", K =/= "port", K =/= "type" ->
+            ListenerConfig1 = [C || C = {K, _} <- ListenerConfig,
+                                    not lists:member(K, ["address", "port", "tlsConfig"])],
+            ListenerConfig2 = ListenerConfig1 ++ proplists:get_value("tlsConfig", ListenerConfig, []),
+
+            Flags0 = lists:foldl(fun({K, V}, CAcc) ->
                                          case V of
-                                             "on" ->
+                                             true ->
                                                  % flag
-                                                 ["--" ++ K | CAcc];
-                                             "off" ->
+                                                 ["--" ++ to_snake_case(K) | CAcc];
+                                             false ->
                                                  % flag
                                                  CAcc;
                                              _ ->
-                                                 ["--" ++ K ++ "=" ++ V | CAcc]
+                                                 ["--" ++ to_snake_case(K) ++ "=" ++ V | CAcc]
                                          end;
                                     (_, CAcc) ->
                                          CAcc
-                                 end, [], ListenerConfig),
-            Flags1 =
-            case proplists:get_value("type", ListenerConfig) of
-                "mqtt" -> Flags0;
-                "mqtts" -> ["--ssl" | Flags0];
-                "ws" -> ["--websocket" | Flags0];
-                "wss" -> ["--ssl", "--websocket" | Flags0];
-                "http" -> ["--http" | Flags0];
-                "https" -> ["--ssl", "--http" | Flags0];
-                _ ->
-                    Flags0
-            end,
-            Flags = lists:usort(Flags1),
+                                 end, [], ListenerConfig2),
+            Flags1 = lists:usort(Flags0),
             case maps:get({listener, {Addr, Port}}, State, undefined) of
-                Flags ->
+                Flags1 ->
                     % no change
-                    apply_listener_config(Rest, maps:put({listener, {Addr, Port}}, Flags, Acc), State);
+                    apply_listener_config(Rest, maps:put({listener, {Addr, Port}}, Flags1, Acc), State);
                 _UndefOldFlags ->
                     % delete
                     DeleteCommand = ["listener", "delete", "address=" ++ Addr, "port=" ++ Port],
                     command(DeleteCommand),
-                    StartCommand = ["listener", "start", "address=" ++ Addr, "port=" ++ Port] ++ Flags,
-                    Acc1 = command(StartCommand, succf({listener, {Addr, Port}}, Flags), Acc),
+                    StartCommand = ["listener", "start", "address=" ++ Addr, "port=" ++ Port] ++ Flags1,
+                    Acc1 = command(StartCommand, succf({listener, {Addr, Port}}, Flags1), Acc),
                     apply_listener_config(Rest, Acc1, State)
             end;
         _ ->
@@ -236,24 +232,25 @@ apply_listener_config(null, NewState, _OldState) ->
     %% empty list is decoded as null
     NewState.
 
-apply_value_config([{ConfigKey, ConfigValue}|Rest], Acc, CurrentState) ->
-    case maps:get({config, ConfigKey}, CurrentState, undefined) of
+apply_value_config([{ConfigKey0, ConfigValue}|Rest], Acc, CurrentState) ->
+    ConfigKey1 = to_snake_case(ConfigKey0),
+    case maps:get({config, ConfigKey1}, CurrentState, undefined) of
         undefined ->
-            case default_val(ConfigKey) of
+            case default_val(ConfigKey1) of
                 {ok, Default} ->
-                    Acc1 = command(["set", ConfigKey ++ "=" ++ ConfigValue],
-                                   succf({config, ConfigKey}, {ConfigValue, Default}), Acc),
+                    Acc1 = command(["set", ConfigKey1 ++ "=" ++ ConfigValue],
+                                   succf({config, ConfigKey1}, {ConfigValue, Default}), Acc),
                     apply_value_config(Rest, Acc1, CurrentState);
                 {error, invalid_key} ->
-                    lager:error("Invalid config key ~p", [ConfigKey]),
+                    lager:error("Invalid config key ~p", [ConfigKey1]),
                     apply_value_config(Rest, Acc, CurrentState)
             end;
         {ConfigValue, Default} ->
             % same value
-            apply_value_config(Rest, maps:put({config, ConfigKey}, {ConfigValue, Default}, Acc), CurrentState);
+            apply_value_config(Rest, maps:put({config, ConfigKey1}, {ConfigValue, Default}, Acc), CurrentState);
         {_Other, Default} ->
-            Acc1 = command(["set", ConfigKey ++ "=" ++ ConfigValue],
-                           succf({config, ConfigKey}, {ConfigValue, Default}), Acc),
+            Acc1 = command(["set", ConfigKey1 ++ "=" ++ ConfigValue],
+                           succf({config, ConfigKey1}, {ConfigValue, Default}), Acc),
             apply_value_config(Rest, Acc1, CurrentState)
     end;
 apply_value_config([], NewState, OldState) ->

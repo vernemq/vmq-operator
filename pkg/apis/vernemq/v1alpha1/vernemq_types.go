@@ -80,50 +80,74 @@ type VerneMQSpec struct {
 	// The environment variables can be used to template the VMQConfig and VMArgs
 	Env []v1.EnvVar `json:"env,omitempty"`
 	// Defines external plugins that have to be compiled and loaded into VerneMQ
-	ExternalPlugins []VerneMQExternalPluginSpec `json:"externalPlugins,omitempty"`
-	// Defines the used plugins (requires the plugin to be part of the image)
-	Plugins []string `json:"plugins,omitempty"`
-	// Defines the installed listeners
-	Listeners []VerneMQListenerSpec `json:"listeners,omitempty"`
+	ExternalPlugins []PluginSource `json:"externalPlugins,omitempty"`
+	// Defines the reloadable config that VerneMQ regularly checks and applies
+	Config ReloadableConfig `json:"config,omitempty"`
 }
 
-// VerneMQExternalPluginSpec defines the plugins to be fetched, compiled and loaded into the VerneMQ container
+// ReloadableConfig defines the reloadable parts of the VerneMQ configuration
 // +k8s:openapi-gen=true
-type VerneMQExternalPluginSpec struct {
+type ReloadableConfig struct {
+	Plugins   []Plugin     `json:"plugins,omitempty"`
+	Listeners []Listener   `json:"listeners,omitempty"`
+	Configs   []ConfigItem `json:"configs,omitempty"`
+}
+
+// PluginSource defines the plugins to be fetched, compiled and loaded into the VerneMQ container
+// +k8s:openapi-gen=true
+type PluginSource struct {
 	ApplicationName string `json:"applicationName"`
 	RepoURL         string `json:"repoURL"`
 	VersionType     string `json:"versionType"`
 	Version         string `json:"version"`
 }
 
-// VerneMQListenerSpec defines the listeners to be started
+// Plugin defines the plugins to be enabled by VerneMQ
 // +k8s:openapi-gen=true
-type VerneMQListenerSpec struct {
-	Address          string  `json:"address"`
-	Port             uint16  `json:"port"`
-	Mountpoint       string  `json:"mountpoint,omitempty"`
-	NrOfAcceptors    uint32  `json:"nrOfAcceptors,omitempty"`
-	MaxConnections   uint32  `json:"maxConnections,omitempty"`
-	ProtocolVersions []uint8 `json:"protocolVersions,omitempty"`
-	WebSocket        bool    `json:"webSocket,omitempty"`
+type Plugin struct {
+	// The name of the plugin application
+	Name string `json:"name"`
+	// The path to the plugin application
+	Path string `json:"path,omitempty"`
+}
+
+// ConfigItem defines a single reloadable VerneMQ config item
+// +k8s:openapi-gen=true
+type ConfigItem struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+// Listener defines the listeners to be started
+// !!! Make sure that the JSON name of the property converted to snake-case results in the value accepted by vmq-admin listener start
+// +k8s:openapi-gen=true
+type Listener struct {
+	Address          string `json:"address"`
+	Port             uint16 `json:"port"`
+	Mountpoint       string `json:"mountpoint,omitempty"`
+	NrOfAcceptors    uint32 `json:"nrOfAcceptors,omitempty"`
+	MaxConnections   uint32 `json:"maxConnections,omitempty"`
+	ProtocolVersions string `json:"protocolVersions,omitempty"`
+	Websocket        bool   `json:"websocket,omitempty"`
 	// Enable PROXY v2 protocol for this listener
 	ProxyProtocol bool `json:"proxyProtocol,omitempty"`
 	// If PROXY v2 is enabled for this listener use this flag to decide if the common name should replace the MQTT username
 	// Enabled by default (use `=false`) to disable
-	ProxyProtocolUseCommonNameAsUsername bool `json:"proxyProtocolUseCommonNameAsUsername,omitempty"`
+	UseCnAsUsername bool `json:"useCnAsUsername,omitempty"`
 	// The TLS Config.
-	TLSConfig TLSConfig `json:"tlsConfig,omitempty"`
+	TLSConfig *TLSConfig `json:"tlsConfig,omitempty"`
 }
 
 // TLSConfig defines the TLS configuration used for a TLS enabled listener
+// !!! Make sure that the JSON name of the property converted to snake-case results in the value accepted by vmq-admin listener start
 // +k8s:openapi-gen=true
 type TLSConfig struct {
 	// The path to the cafile containing the PEM encoded CA certificates that are trusted by the server.
-	CaFile string `json:"caFile"`
+	Cafile string `json:"cafile"`
 	// The path to the PEM encoded server certificate
-	CertFile string `json:"certFile"`
+	Certfile string `json:"certfile"`
 	// The path to the PEM encoded key file
-	KeyFile string `json:"keyFile"`
+	Keyfile string `json:"keyfile"`
 	// The list of allowed ciphers, each separated by a colon
 	Ciphers string `json:"ciphers,omitempty"`
 	// Use client certificates to authenticate your clients
@@ -132,7 +156,7 @@ type TLSConfig struct {
 	UseIdentityAsUsername bool `json:"useIdentityAsUsername,omitempty"`
 	// If RequreCertificate is true, you can use a certificate revocation list
 	// file to revoke access to particular client certificates. The file has to be PEM encoded.
-	CrlFile string `json:"crlFile,omitempty"`
+	Crlfile string `json:"crlfile,omitempty"`
 }
 
 // StorageSpec defines the configured storage for VerneMQ Cluster nodes.
