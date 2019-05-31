@@ -234,7 +234,7 @@ apply_listener_config(null, NewState, _OldState) ->
     %% empty list is decoded as null
     NewState.
 
-apply_value_config([{ConfigKey0, ConfigValue}|Rest], Acc, CurrentState) ->
+apply_value_config([[{"name", ConfigKey0}, {"value", ConfigValue}]|Rest], Acc, CurrentState) ->
     ConfigKey1 = to_snake_case(ConfigKey0),
     case maps:get({config, ConfigKey1}, CurrentState, undefined) of
         undefined ->
