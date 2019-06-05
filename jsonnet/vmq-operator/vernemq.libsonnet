@@ -6,8 +6,36 @@ local k = import 'ksonnet/ksonnet.beta.3/k.libsonnet';
     vernemq+:: {
         name: 'k8s',
         replicas: 2,
-        listeners: {},
-        plugins: {},
+        listeners: [
+            {
+                address: '0.0.0.0',
+                port: 1883,
+            },
+            {
+                address: '0.0.0.0',
+                port: 1888,
+                websocket: true,
+            },
+        ],
+        plugins: [],
+        configs: [
+            {
+                name: 'allow_register_during_netsplit',
+                value: 'on',
+            },
+            {
+                name: 'allow_publish_during_netsplit',
+                value: 'on',
+            },
+            {
+                name: 'allow_subscribe_during_netsplit',
+                value: 'on',
+            },
+            {
+                name: 'allow_unsubscribe_during_netsplit',
+                value: 'on',
+            },
+        ],
     },
 
     versions+:: {
@@ -86,7 +114,11 @@ local k = import 'ksonnet/ksonnet.beta.3/k.libsonnet';
                version: $._config.versions.vernemq,
                baseImage: $._config.imageRepos.vernemq,
                serviceAccountName: 'vernemq-' + $._config.vernemq.name,
-
+               config: {
+                    listeners: $._config.vernemq.listeners,
+                    plugins: $._config.vernemq.plugins,
+                    configs: $._config.vernemq.configs,
+               },
            },
         },
   },
