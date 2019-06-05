@@ -85,14 +85,14 @@ func schema_pkg_apis_vernemq_v1alpha1_Listener(ref common.ReferenceCallback) com
 						SchemaProps: spec.SchemaProps{
 							Description: "Defines the number of TCP acceptor processes.",
 							Type:        []string{"integer"},
-							Format:      "int64",
+							Format:      "int32",
 						},
 					},
 					"maxConnections": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Defines the number of allowed concurrent TCP connections.",
 							Type:        []string{"integer"},
-							Format:      "int64",
+							Format:      "int32",
 						},
 					},
 					"protocolVersions": {

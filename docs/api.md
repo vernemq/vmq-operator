@@ -34,10 +34,10 @@ Listener defines the listeners to be started !!! Make sure that the JSON name of
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
 | address | Defines the Network address the listener accepts connections on. Alternatively pass the name of the network interface. | string | true |
-| port | Defines the TCP port | uint16 | true |
+| port | Defines the TCP port | int | true |
 | mountpoint | Defines the mountpoint for this listener. Defaults to \"\" | string | false |
-| nrOfAcceptors | Defines the number of TCP acceptor processes. | uint32 | false |
-| maxConnections | Defines the number of allowed concurrent TCP connections. | uint32 | false |
+| nrOfAcceptors | Defines the number of TCP acceptor processes. | int | false |
+| maxConnections | Defines the number of allowed concurrent TCP connections. | int | false |
 | protocolVersions | Defines the allowed MQTT protocol version. Specified as a comma separated list e.g. \"3,4,5\" | string | false |
 | websocket | Specifies that this listener accepts connections over HTTP websockets. | bool | false |
 | proxyProtocol | Enable PROXY v2 protocol for this listener | bool | false |
