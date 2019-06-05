@@ -15,7 +15,7 @@ We've seen that Docker is the goto solution to run VerneMQ, especially during th
 
 #### Automatic clustering
 
-To sucessfully join an existing VerneMQ cluster the joining node must know at least one other node of the cluster. Such a node is also called the discovery node. In a 'manual' environment a human operator knows all the names and IP addresses of all the servers, so he is able to manually execute the `vmq-admin cluster join / leave...` commands. Obviously you expect Kubernetes to automatically handle that.
+To sucessfully join an existing VerneMQ cluster the joining node must know at least one other node of the cluster. Such a node is also called the discovery node. In a 'manual' environment a human operator knows all the names and IP addresses of all the servers, and can then manually execute the `vmq-admin cluster join / leave...` commands. Obviously you expect Kubernetes to automatically handle that.
 
 #### Configuration
 
