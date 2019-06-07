@@ -116,6 +116,12 @@ type Plugin struct {
 	Name string `json:"name"`
 	// The path to the plugin application
 	Path string `json:"path,omitempty"`
+	// The name of the configmap for the plugin
+	Config string `json:"config,omitempty"`
+	// The name of the module used to apply the configuration from
+	// the configmap, if not specified `name` is used as the
+	// module name.
+	ConfigMod string `json:"configMod,omitempty"`
 }
 
 // ConfigItem defines a single reloadable VerneMQ config item

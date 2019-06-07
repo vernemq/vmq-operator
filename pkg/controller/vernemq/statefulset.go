@@ -3,6 +3,7 @@ package vernemq
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/blang/semver"
 	pkgerr "github.com/pkg/errors"
@@ -285,6 +286,35 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 			ReadOnly:  true,
 			MountPath: configmapsDir + c,
 		})
+
+	}
+
+	// make plugin configmaps available in the container
+	envConfigMaps := []v1.EnvVar{}
+	for _, p := range instance.Spec.Config.Plugins {
+		if p.Config != "" {
+			n := p.Name
+			c := p.Config
+			envConfigMaps = append(envConfigMaps, v1.EnvVar{
+				Name:  "VMQ_PLUGIN_" + strings.ToUpper(n),
+				Value: fmt.Sprintf("%s/%s/config", configmapsDir, c),
+			})
+			volumes = append(volumes, v1.Volume{
+				Name: volumeName("configmap-" + c),
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: c,
+						},
+					},
+				},
+			})
+			vernemqVolumeMounts = append(vernemqVolumeMounts, v1.VolumeMount{
+				Name:      volumeName("configmap-" + c),
+				ReadOnly:  true,
+				MountPath: configmapsDir + c,
+			})
+		}
 	}
 
 	var livenessFailureThreshold int32 = 60
@@ -344,7 +374,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 	}
 
 	additionalContainers := instance.Spec.Containers
-	envVars := instance.Spec.Env
+	envVars := append(instance.Spec.Env, envConfigMaps...)
 
 	return &appsv1.StatefulSetSpec{
 		ServiceName:         serviceName(instance.Name),

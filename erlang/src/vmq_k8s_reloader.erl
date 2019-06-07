@@ -151,17 +151,21 @@ apply_plugins_config([PluginConfig|Rest], Acc, CurrentState) ->
             case maps:is_key({plugin, Name}, CurrentState) of
                 true ->
                     % already installed
+                    maybe_update_config(PluginConfig),
                     apply_plugins_config(Rest, maps:put({plugin, Name}, enabled, Acc), CurrentState);
                 false ->
                     Acc1 =
                     case proplists:get_value("path", PluginConfig) of
                         undefined ->
-                            command(["plugin", "enable", "-n", Name],
-                                    succf({plugin, Name}, enabled), Acc);
+                            NewAcc = command(["plugin", "enable", "-n", Name],
+                                          succf({plugin, Name}, enabled), Acc),
+                            NewAcc;
                         Path ->
-                            command(["plugin", "enable", "-n", Name, "-p", Path],
-                                    succf({plugin, Name}, enabled), Acc)
+                            NewAcc = command(["plugin", "enable", "-n", Name, "-p", Path],
+                                             succf({plugin, Name}, enabled), Acc),
+                            NewAcc
                     end,
+                    maybe_update_config(PluginConfig),
                     apply_plugins_config(Rest, Acc1, CurrentState)
             end
     end;
@@ -176,6 +180,42 @@ apply_plugins_config([], NewState, OldState) ->
 apply_plugins_config(null, NewState, _OldState) ->
     %% empty list is decoded as null
     NewState.
+
+maybe_update_config(PluginConfig) ->
+    %% TODO: consider what should happen if applying
+    %% the configuration fails.
+    Name = proplists:get_value("name", PluginConfig),
+    EnvKey = "VMQ_PLUGIN_" ++ string:uppercase(Name),
+    ConfigMod = list_to_atom(proplists:get_value("configMod", PluginConfig, Name)),
+    ConfigFile = os:getenv(EnvKey, undefined),
+    case ConfigFile of
+        undefined ->
+            %% nop
+            ok;
+        _ ->
+            case file:read_file(ConfigFile) of
+                {error, Reason} ->
+                    lager:error("Can't update configuration for plugin ~p from ~p due to '~p'", [Name, ConfigFile, Reason]);
+                {ok, Content} ->
+                    case catch apply(ConfigMod, module_info, [exports]) of
+                        {'EXIT', _} ->
+                            lager:error("Invalid callback module ~p for plugin ~p", [ConfigMod, Name]);
+                        Exports ->
+                            case lists:member({apply_config, 1}, Exports) of
+                                true ->
+                                    try
+                                        ConfigMod:apply_config(Content)
+                                    catch
+                                        _C:E ->
+                                            lager:error("Updating configuration for plugin ~p failed due to '~p'", [Name, E])
+                                    end;
+                                false ->
+                                    lager:error("Callback module ~p for plugin ~p does not export the apply_config/1 function",
+                                                [ConfigMod, Name])
+                            end
+                    end
+            end
+    end.
 
 to_snake_case(S) ->
     string:lowercase(re:replace(S, "[A-Z]", "_&", [{return, list}, global])).
