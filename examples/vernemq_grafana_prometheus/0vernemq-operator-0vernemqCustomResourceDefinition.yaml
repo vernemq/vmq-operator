@@ -48,15 +48,16 @@ spec:
                       address:
                         type: string
                       maxConnections:
-                        format: int32
+                        format: int64
                         type: integer
                       mountpoint:
                         type: string
                       nrOfAcceptors:
-                        format: int32
+                        format: int64
                         type: integer
                       port:
-                        type: uint16
+                        format: int64
+                        type: integer
                       protocolVersions:
                         type: string
                       proxyProtocol:

@@ -134,13 +134,13 @@ type Listener struct {
 	// Defines the Network address the listener accepts connections on. Alternatively pass the name of the network interface.
 	Address string `json:"address"`
 	// Defines the TCP port
-	Port uint16 `json:"port"`
+	Port int `json:"port"`
 	// Defines the mountpoint for this listener. Defaults to ""
 	Mountpoint string `json:"mountpoint,omitempty"`
 	// Defines the number of TCP acceptor processes.
-	NrOfAcceptors uint32 `json:"nrOfAcceptors,omitempty"`
+	NrOfAcceptors int `json:"nrOfAcceptors,omitempty"`
 	// Defines the number of allowed concurrent TCP connections.
-	MaxConnections uint32 `json:"maxConnections,omitempty"`
+	MaxConnections int `json:"maxConnections,omitempty"`
 	// Defines the allowed MQTT protocol version. Specified as a comma separated list e.g. "3,4,5"
 	ProtocolVersions string `json:"protocolVersions,omitempty"`
 	// Specifies that this listener accepts connections over HTTP websockets.
