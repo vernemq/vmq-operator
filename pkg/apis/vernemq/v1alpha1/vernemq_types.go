@@ -116,11 +116,11 @@ type Plugin struct {
 	Name string `json:"name"`
 	// The path to the plugin application
 	Path string `json:"path,omitempty"`
-	// The name of the configmap for the plugin
+	// The (opaque) config string which is passed directly to the
+	// plugin where it is applied.
 	Config string `json:"config,omitempty"`
-	// The name of the module used to apply the configuration from
-	// the configmap, if not specified `name` is used as the
-	// module name.
+	// The name of the module used to apply the configuration, if
+	// not specified `name` is used as the module name.
 	ConfigMod string `json:"configMod,omitempty"`
 }
 

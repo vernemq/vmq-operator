@@ -185,34 +185,27 @@ maybe_update_config(PluginConfig) ->
     %% TODO: consider what should happen if applying
     %% the configuration fails.
     Name = proplists:get_value("name", PluginConfig),
-    EnvKey = "VMQ_PLUGIN_" ++ string:uppercase(Name),
     ConfigMod = list_to_atom(proplists:get_value("configMod", PluginConfig, Name)),
-    ConfigFile = os:getenv(EnvKey, undefined),
-    case ConfigFile of
+    case proplists:get_value("config", PluginConfig) of
         undefined ->
             %% nop
             ok;
-        _ ->
-            case file:read_file(ConfigFile) of
-                {error, Reason} ->
-                    lager:error("Can't update configuration for plugin ~p from ~p due to '~p'", [Name, ConfigFile, Reason]);
-                {ok, Content} ->
-                    case catch apply(ConfigMod, module_info, [exports]) of
-                        {'EXIT', _} ->
-                            lager:error("Invalid callback module ~p for plugin ~p", [ConfigMod, Name]);
-                        Exports ->
-                            case lists:member({apply_config, 1}, Exports) of
-                                true ->
-                                    try
-                                        ConfigMod:apply_config(Content)
-                                    catch
-                                        _C:E ->
-                                            lager:error("Updating configuration for plugin ~p failed due to '~p'", [Name, E])
-                                    end;
-                                false ->
-                                    lager:error("Callback module ~p for plugin ~p does not export the apply_config/1 function",
-                                                [ConfigMod, Name])
-                            end
+        Content ->
+            case catch apply(ConfigMod, module_info, [exports]) of
+                {'EXIT', _} ->
+                    lager:error("Invalid callback module ~p for plugin ~p", [ConfigMod, Name]);
+                Exports ->
+                    case lists:member({apply_config, 1}, Exports) of
+                        true ->
+                            try
+                                ConfigMod:apply_config(Content)
+                            catch
+                                _C:E ->
+                                    lager:error("Updating configuration for plugin ~p failed due to '~p'", [Name, E])
+                            end;
+                        false ->
+                            lager:error("Callback module ~p for plugin ~p does not export the apply_config/1 function",
+                                        [ConfigMod, Name])
                     end
             end
     end.
