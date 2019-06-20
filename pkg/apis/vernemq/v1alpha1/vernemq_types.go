@@ -130,8 +130,8 @@ type Command struct {
 	// Command to be executed
 	Command string `json:"cmd"`
 	// Number of seconds after which the command times
-	// out. Defaults to 5 seconds. Minimum value is 1.
-	TimeoutSeconds int `json:"timeoutSeconds"`
+	// out. Defaults to 5 seconds.
+	TimeoutSeconds int `json:"timeoutSeconds,omitempty"`
 }
 
 // ConfigItem defines a single reloadable VerneMQ config item
