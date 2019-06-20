@@ -164,7 +164,7 @@ apply_plugins_config([PluginConfig|Rest], Acc, CurrentState) ->
                             command(["plugin", "enable", "-n", Name, "-p", Path],
                                     succf({plugin, Name}, PluginConfig), Acc)
                     end,
-                    PostCmds = proplists:get_value("preStart", PluginConfig, []),
+                    PostCmds = proplists:get_value("postStart", PluginConfig, []),
                     ok = exec_commands(PostCmds),
                     apply_plugins_config(Rest, Acc1, CurrentState)
             end
@@ -178,7 +178,7 @@ apply_plugins_config([], NewState, OldState) ->
                           PreCmds = proplists:get_value("preStop", Cfg, []),
                           exec_commands(PreCmds),
                           command(["plugin", "disable", "-n", Name]),
-                          PostCmds = proplists:get_value("preStop", Cfg, []),
+                          PostCmds = proplists:get_value("postStop", Cfg, []),
                           exec_commands(PostCmds)
                   end, ToBeDisabled),
     NewState;
