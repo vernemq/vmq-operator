@@ -195,7 +195,8 @@ exec_commands([CmdConfig|Rest]) ->
             true -> " 2>&1";
             false -> ""
         end,
-    os:cmd([Cmd, Redirect]),
+    Res = os:cmd([Cmd, Redirect]),
+    lager:info("Execute \"~s ~s\" \"~s\"", [Cmd, Redirect, Res]),
     exec_commands(Rest).
 
 to_snake_case(S) ->
