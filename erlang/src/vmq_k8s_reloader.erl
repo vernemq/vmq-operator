@@ -174,7 +174,7 @@ apply_plugins_config([], NewState, OldState) ->
     Old = [Name || {plugin, Name} <- maps:keys(OldState)],
     ToBeDisabled = Old -- New,
     lists:foreach(fun(Name) ->
-                          Cfg = maps:get(OldState, {plugin, Name}),
+                          Cfg = maps:get({plugin, Name}, OldState, []),
                           PreCmds = proplists:get_value("preStop", Cfg, []),
                           exec_commands(PreCmds),
                           command(["plugin", "disable", "-n", Name]),
