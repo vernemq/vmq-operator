@@ -132,8 +132,6 @@ type Command struct {
 	// Number of seconds after which the command times
 	// out. Defaults to 5 seconds. Minimum value is 1.
 	TimeoutSeconds int `json:"timeoutSeconds"`
-	// Redirect StdErr to StdOut. Defaults to true.
-	Redirect bool `json:"redirectStdErr"`
 }
 
 // ConfigItem defines a single reloadable VerneMQ config item

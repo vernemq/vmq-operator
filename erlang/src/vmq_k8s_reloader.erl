@@ -190,13 +190,8 @@ exec_commands([]) -> ok;
 exec_commands([CmdConfig|Rest]) ->
     _TimeoutSeconds = proplists:get_value("timeoutSeconds", CmdConfig, 5),
     Cmd = proplists:get_value("cmd", CmdConfig),
-    Redirect =
-        case proplists:get_value("redirectStderr", CmdConfig, true) of
-            true -> " 2>&1";
-            false -> ""
-        end,
-    Res = os:cmd([Cmd, Redirect]),
-    lager:info("Execute \"~s ~s\" \"~s\"", [Cmd, Redirect, string:trim(Res)]),
+    Res = os:cmd(Cmd),
+    lager:info("Execute \"~s\" \"~s\"", [Cmd, string:trim(Res)]),
     exec_commands(Rest).
 
 to_snake_case(S) ->
