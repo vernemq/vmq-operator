@@ -188,10 +188,34 @@ apply_plugins_config(null, NewState, _OldState) ->
 
 exec_commands([]) -> ok;
 exec_commands([CmdConfig|Rest]) ->
-    _TimeoutSeconds = proplists:get_value("timeoutSeconds", CmdConfig, 5),
+    TimeoutSeconds = proplists:get_value("timeoutSeconds", CmdConfig, 5),
     Cmd = proplists:get_value("cmd", CmdConfig),
-    Res = os:cmd(Cmd),
-    lager:info("Execute \"~s\" \"~s\"", [Cmd, string:trim(Res)]),
+    Ref = make_ref(),
+    Self = self(),
+    {Pid, MRef} = spawn_monitor(
+            fun() ->
+                    Res = os:cmd(Cmd),
+                    Self ! {exec_cmd_res, Ref, Cmd, Res}
+            end),
+    TimeoutMs = TimeoutSeconds*1000,
+    receive
+        {exec_cmd_res, Ref, Cmd, Res} ->
+            demonitor(MRef, [flush]),
+            lager:info("Execute \"~s\" \"~s\"", [Cmd, string:trim(Res)]);
+        {'DOWN', MRef, process, _, Info} ->
+            lager:info("Execute \"~s\" abnormally terminated (~ps)", [Cmd, Info])
+    after
+        TimeoutMs ->
+            exit(Pid, kill),
+            %% wait now for either the result or the DOWN message.
+            receive
+                {exec_cmd_res, Ref, Cmd, Res} ->
+                    demonitor(MRef, [flush]),
+                    lager:info("Execute \"~s\" \"~s\"", [Cmd, string:trim(Res)]);
+                {'DOWN', MRef, process, _, Info} ->
+                    lager:info("Execute \"~s\" abnormally terminated (~ps)", [Cmd, Info])
+            end
+    end,
     exec_commands(Rest).
 
 to_snake_case(S) ->
