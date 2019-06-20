@@ -212,10 +212,10 @@ exec_commands([CmdConfig|Rest]) ->
                 {exec_cmd_res, Ref, Cmd, Res} ->
                     demonitor(MRef, [flush]),
                     lager:info("Execute \"~s\" \"~s\"", [Cmd, string:trim(Res)]);
-                {'DOWN', MRef, process, _, killed=Info} ->
-                    lager:info("Execute \"~s\" abnormally terminated (~p)", [Cmd, Info]);
-                {'DOWN', MRef, process, _, _} ->
-                    lager:info("Execute \"~s\" aborted due to timeout (~ps)", [Cmd, TimeoutSeconds])
+                {'DOWN', MRef, process, _, killed} ->
+                    lager:info("Execute \"~s\" aborted due to timeout (~ps)", [Cmd, TimeoutSeconds]);
+                {'DOWN', MRef, process, _, Info} ->
+                    lager:info("Execute \"~s\" abnormally terminated (~p)", [Cmd, Info])
             end
     end,
     exec_commands(Rest).
