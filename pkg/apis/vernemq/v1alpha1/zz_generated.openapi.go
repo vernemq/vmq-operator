@@ -158,11 +158,64 @@ func schema_pkg_apis_vernemq_v1alpha1_Plugin(ref common.ReferenceCallback) commo
 							Format:      "",
 						},
 					},
+					"preStart": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Commands to execute before the plugin is started",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.Command"),
+									},
+								},
+							},
+						},
+					},
+					"postStart": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Commands to execute after the plugin is started",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.Command"),
+									},
+								},
+							},
+						},
+					},
+					"preStop": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Commands to execute before the plugin is stopped",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.Command"),
+									},
+								},
+							},
+						},
+					},
+					"postStop": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Commands to execute after the plugin is stopped",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.Command"),
+									},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"name"},
 			},
 		},
-		Dependencies: []string{},
+		Dependencies: []string{
+			"github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1.Command"},
 	}
 }
 

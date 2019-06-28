@@ -4,6 +4,7 @@ This Document documents the types introduced by the VerneMQ Operator to be consu
 > Note this document is generated from code comments. When contributing a change to this document please do so by changing the code comments.
 
 ## Table of Contents
+* [Command](#command)
 * [ConfigItem](#configitem)
 * [Listener](#listener)
 * [Plugin](#plugin)
@@ -15,6 +16,17 @@ This Document documents the types introduced by the VerneMQ Operator to be consu
 * [VerneMQList](#vernemqlist)
 * [VerneMQSpec](#vernemqspec)
 * [VerneMQStatus](#vernemqstatus)
+
+## Command
+
+
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| cmd | Command to be executed | string | true |
+| timeoutSeconds | Number of seconds after which the command times out. Defaults to 5 seconds. | int | false |
+
+[Back to TOC](#table-of-contents)
 
 ## ConfigItem
 
@@ -54,6 +66,10 @@ Plugin defines the plugins to be enabled by VerneMQ
 | ----- | ----------- | ------ | -------- |
 | name | The name of the plugin application | string | true |
 | path | The path to the plugin application | string | false |
+| preStart | Commands to execute before the plugin is started | [][Command](#command) | false |
+| postStart | Commands to execute after the plugin is started | [][Command](#command) | false |
+| preStop | Commands to execute before the plugin is stopped | [][Command](#command) | false |
+| postStop | Commands to execute after the plugin is stopped | [][Command](#command) | false |
 
 [Back to TOC](#table-of-contents)
 
