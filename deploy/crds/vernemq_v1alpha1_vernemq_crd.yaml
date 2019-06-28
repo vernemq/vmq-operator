@@ -99,6 +99,54 @@ spec:
                         type: string
                       path:
                         type: string
+                      postStart:
+                        items:
+                          properties:
+                            cmd:
+                              type: string
+                            timeoutSeconds:
+                              format: int64
+                              type: integer
+                          required:
+                          - cmd
+                          type: object
+                        type: array
+                      postStop:
+                        items:
+                          properties:
+                            cmd:
+                              type: string
+                            timeoutSeconds:
+                              format: int64
+                              type: integer
+                          required:
+                          - cmd
+                          type: object
+                        type: array
+                      preStart:
+                        items:
+                          properties:
+                            cmd:
+                              type: string
+                            timeoutSeconds:
+                              format: int64
+                              type: integer
+                          required:
+                          - cmd
+                          type: object
+                        type: array
+                      preStop:
+                        items:
+                          properties:
+                            cmd:
+                              type: string
+                            timeoutSeconds:
+                              format: int64
+                              type: integer
+                          required:
+                          - cmd
+                          type: object
+                        type: array
                     required:
                     - name
                     type: object
