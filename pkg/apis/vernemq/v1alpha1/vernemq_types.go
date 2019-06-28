@@ -116,6 +116,22 @@ type Plugin struct {
 	Name string `json:"name"`
 	// The path to the plugin application
 	Path string `json:"path,omitempty"`
+	// Commands to execute before the plugin is started
+	PreStart []Command `json:"preStart,omitempty"`
+	// Commands to execute after the plugin is started
+	PostStart []Command `json:"postStart,omitempty"`
+	// Commands to execute before the plugin is stopped
+	PreStop []Command `json:"preStop,omitempty"`
+	// Commands to execute after the plugin is stopped
+	PostStop []Command `json:"postStop,omitempty"`
+}
+
+type Command struct {
+	// Command to be executed
+	Command string `json:"cmd"`
+	// Number of seconds after which the command times
+	// out. Defaults to 5 seconds.
+	TimeoutSeconds int `json:"timeoutSeconds,omitempty"`
 }
 
 // ConfigItem defines a single reloadable VerneMQ config item

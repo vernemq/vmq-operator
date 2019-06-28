@@ -151,17 +151,21 @@ apply_plugins_config([PluginConfig|Rest], Acc, CurrentState) ->
             case maps:is_key({plugin, Name}, CurrentState) of
                 true ->
                     % already installed
-                    apply_plugins_config(Rest, maps:put({plugin, Name}, enabled, Acc), CurrentState);
+                    apply_plugins_config(Rest, maps:put({plugin, Name}, PluginConfig, Acc), CurrentState);
                 false ->
+                    PreCmds = proplists:get_value("preStart", PluginConfig, []),
+                    ok = exec_commands(PreCmds),
                     Acc1 =
                     case proplists:get_value("path", PluginConfig) of
                         undefined ->
                             command(["plugin", "enable", "-n", Name],
-                                    succf({plugin, Name}, enabled), Acc);
+                                    succf({plugin, Name}, PluginConfig), Acc);
                         Path ->
                             command(["plugin", "enable", "-n", Name, "-p", Path],
-                                    succf({plugin, Name}, enabled), Acc)
+                                    succf({plugin, Name}, PluginConfig), Acc)
                     end,
+                    PostCmds = proplists:get_value("postStart", PluginConfig, []),
+                    ok = exec_commands(PostCmds),
                     apply_plugins_config(Rest, Acc1, CurrentState)
             end
     end;
@@ -170,12 +174,51 @@ apply_plugins_config([], NewState, OldState) ->
     Old = [Name || {plugin, Name} <- maps:keys(OldState)],
     ToBeDisabled = Old -- New,
     lists:foreach(fun(Name) ->
-                          command(["plugin", "disable", "-n", Name])
+                          Cfg = maps:get({plugin, Name}, OldState, []),
+                          PreCmds = proplists:get_value("preStop", Cfg, []),
+                          exec_commands(PreCmds),
+                          command(["plugin", "disable", "-n", Name]),
+                          PostCmds = proplists:get_value("postStop", Cfg, []),
+                          exec_commands(PostCmds)
                   end, ToBeDisabled),
     NewState;
 apply_plugins_config(null, NewState, _OldState) ->
     %% empty list is decoded as null
     NewState.
+
+exec_commands([]) -> ok;
+exec_commands([CmdConfig|Rest]) ->
+    TimeoutSeconds = proplists:get_value("timeoutSeconds", CmdConfig, 5),
+    Cmd = proplists:get_value("cmd", CmdConfig),
+    Ref = make_ref(),
+    Self = self(),
+    {Pid, MRef} = spawn_monitor(
+            fun() ->
+                    Res = os:cmd(Cmd),
+                    Self ! {exec_cmd_res, Ref, Cmd, Res}
+            end),
+    TimeoutMs = TimeoutSeconds*1000,
+    receive
+        {exec_cmd_res, Ref, Cmd, Res} ->
+            demonitor(MRef, [flush]),
+            lager:info("Execute \"~s\" \"~s\"", [Cmd, string:trim(Res)]);
+        {'DOWN', MRef, process, _, Info} ->
+            lager:info("Execute \"~s\" abnormally terminated (~p)", [Cmd, Info])
+    after
+        TimeoutMs ->
+            exit(Pid, kill),
+            %% wait now for either the result or the DOWN message.
+            receive
+                {exec_cmd_res, Ref, Cmd, Res} ->
+                    demonitor(MRef, [flush]),
+                    lager:info("Execute \"~s\" \"~s\"", [Cmd, string:trim(Res)]);
+                {'DOWN', MRef, process, _, killed} ->
+                    lager:info("Execute \"~s\" aborted due to timeout (~ps)", [Cmd, TimeoutSeconds]);
+                {'DOWN', MRef, process, _, Info} ->
+                    lager:info("Execute \"~s\" abnormally terminated (~p)", [Cmd, Info])
+            end
+    end,
+    exec_commands(Rest).
 
 to_snake_case(S) ->
     string:lowercase(re:replace(S, "[A-Z]", "_&", [{return, list}, global])).
