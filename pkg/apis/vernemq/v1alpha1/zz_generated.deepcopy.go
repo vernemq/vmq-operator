@@ -352,6 +352,11 @@ func (in *VerneMQSpec) DeepCopyInto(out *VerneMQSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.BundlerImage != nil {
+		in, out := &in.BundlerImage, &out.BundlerImage
+		*out = new(string)
+		**out = **in
+	}
 	if in.ExternalPlugins != nil {
 		in, out := &in.ExternalPlugins, &out.ExternalPlugins
 		*out = make([]PluginSource, len(*in))

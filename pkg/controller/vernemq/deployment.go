@@ -34,6 +34,20 @@ func makeDeployment(instance *vernemqv1alpha1.VerneMQ) *appsv1.Deployment {
 }
 
 func makeDeploymentSpec(instance *vernemqv1alpha1.VerneMQ) *appsv1.DeploymentSpec {
+	if instance.Spec.BundlerBaseImage == "" {
+		instance.Spec.BundlerBaseImage = defaultBundlerBaseImage
+	}
+	bundlerImage := fmt.Sprintf("%s:%s", instance.Spec.BundlerBaseImage, instance.Spec.BundlerVersion)
+	if instance.Spec.BundlerTag != "" {
+		bundlerImage = fmt.Sprintf("%s:%s", instance.Spec.BundlerBaseImage, instance.Spec.BundlerTag)
+	}
+	if instance.Spec.BundlerSHA != "" {
+		bundlerImage = fmt.Sprintf("%s@sha256:%s", instance.Spec.BundlerBaseImage, instance.Spec.BundlerSHA)
+	}
+	if instance.Spec.BundlerImage != nil && *instance.Spec.BundlerImage != "" {
+		bundlerImage = *instance.Spec.BundlerImage
+	}
+
 	podLabels := map[string]string{"app": "vmq-bundler"}
 	podAnnotations := map[string]string{}
 
@@ -50,7 +64,7 @@ func makeDeploymentSpec(instance *vernemqv1alpha1.VerneMQ) *appsv1.DeploymentSpe
 				Containers: []v1.Container{
 					{
 						Name:  "vmq-bundler",
-						Image: "vernemq/vmq-plugin-bundler",
+						Image: bundlerImage,
 						Ports: []v1.ContainerPort{
 							{
 								Name:          "http",
