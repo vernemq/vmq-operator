@@ -28,6 +28,16 @@ spec:
               type: object
             baseImage:
               type: string
+            bundlerBaseImage:
+              type: string
+            bundlerImage:
+              type: string
+            bundlerSHA:
+              type: string
+            bundlerTag:
+              type: string
+            bundlerVersion:
+              type: string
             config:
               properties:
                 configs:

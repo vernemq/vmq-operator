@@ -178,6 +178,11 @@ VerneMQSpec defines the desired state of VerneMQ
 | vmqConfig | Defines the config that is used when starting VerneMQ (similar to vernemq.conf) | string | false |
 | vmArgs | Defines the arguments passed to the erlang VM when starting VerneMQ | string | false |
 | env | Defines additional environment variables for the VerneMQ container The environment variables can be used to template the VMQConfig and VMArgs | []v1.EnvVar | false |
+| bundlerVersion | Version of the Plugin Bundler to be deployed | string | false |
+| bundlerTag | Tag of Plugin Bundler container image to be deployed. Defaults to the value of `bundlerVersion`. BundlerVersion is ignored if BundlerTag is set. | string | false |
+| bundlerSHA | SHA of Plugin Bundler container image to be deployed. Defaults to the value of `bundlerVersion`. Similar to a tag, but the SHA explicitly deploys an immutable container image. BundlerVersion and BundlerTag are ignored if SHA is set. | string | false |
+| bundlerImage | BundlerImage if specified has precedence over bundlerBaseImage, bundlerTag and bundlerSha combinations. Specifying the bundlerVersion is still necessary to ensure the VerneMQ Operator knows what version of the Plugin Bundler is being configured. | *string | false |
+| bundlerBaseImage | Bundler Base image to use for a VerneMQ Plugin Bundler deployment. | string | false |
 | externalPlugins | Defines external plugins that have to be compiled and loaded into VerneMQ | [][PluginSource](#pluginsource) | false |
 | config | Defines the reloadable config that VerneMQ regularly checks and applies | [ReloadableConfig](#reloadableconfig) | false |
 

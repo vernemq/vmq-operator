@@ -654,6 +654,41 @@ func schema_pkg_apis_vernemq_v1alpha1_VerneMQSpec(ref common.ReferenceCallback) 
 							},
 						},
 					},
+					"bundlerVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version of the Plugin Bundler to be deployed",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"bundlerTag": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Tag of Plugin Bundler container image to be deployed. Defaults to the value of `bundlerVersion`. BundlerVersion is ignored if BundlerTag is set.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"bundlerSHA": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SHA of Plugin Bundler container image to be deployed. Defaults to the value of `bundlerVersion`. Similar to a tag, but the SHA explicitly deploys an immutable container image. BundlerVersion and BundlerTag are ignored if SHA is set.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"bundlerImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BundlerImage if specified has precedence over bundlerBaseImage, bundlerTag and bundlerSha combinations. Specifying the bundlerVersion is still necessary to ensure the VerneMQ Operator knows what version of the Plugin Bundler is being configured.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"bundlerBaseImage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Bundler Base image to use for a VerneMQ Plugin Bundler deployment.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"externalPlugins": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Defines external plugins that have to be compiled and loaded into VerneMQ",
