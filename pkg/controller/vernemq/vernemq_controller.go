@@ -36,7 +36,7 @@ const (
 	secretsDir        = "/vernemq/etc/secrets/"
 	sSetInputHashName = "vernemq-operator-input-hash"
 
-	defaultVerneMQVersion   = "1.7.1-2-alpine"
+	defaultVerneMQVersion   = "1.9.2-alpine"
 	defaultVerneMQBaseImage = "vernemq/vernemq"
 	defaultBundlerBaseImage = "vernemq/vmq-plugin-builder"
 )
