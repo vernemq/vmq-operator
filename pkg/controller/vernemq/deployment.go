@@ -37,6 +37,9 @@ func makeDeploymentSpec(instance *vernemqv1alpha1.VerneMQ) *appsv1.DeploymentSpe
 	if instance.Spec.BundlerBaseImage == "" {
 		instance.Spec.BundlerBaseImage = defaultBundlerBaseImage
 	}
+	if instance.Spec.BundlerVersion == "" {
+		instance.Spec.BundlerVersion = defaultBundlerVersion
+	}
 	bundlerImage := fmt.Sprintf("%s:%s", instance.Spec.BundlerBaseImage, instance.Spec.BundlerVersion)
 	if instance.Spec.BundlerTag != "" {
 		bundlerImage = fmt.Sprintf("%s:%s", instance.Spec.BundlerBaseImage, instance.Spec.BundlerTag)
@@ -47,6 +50,8 @@ func makeDeploymentSpec(instance *vernemqv1alpha1.VerneMQ) *appsv1.DeploymentSpe
 	if instance.Spec.BundlerImage != nil && *instance.Spec.BundlerImage != "" {
 		bundlerImage = *instance.Spec.BundlerImage
 	}
+
+	fmt.Println("Bundler Image: " + bundlerImage)
 
 	podLabels := map[string]string{"app": "vmq-bundler"}
 	podAnnotations := map[string]string{}
