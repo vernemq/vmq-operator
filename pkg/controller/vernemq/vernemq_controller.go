@@ -38,7 +38,7 @@ const (
 
 	defaultVerneMQVersion   = "1.9.2-alpine"
 	defaultVerneMQBaseImage = "vernemq/vernemq"
-	defaultBundlerBaseImage = "vernemq/vmq-plugin-builder"
+	defaultBundlerBaseImage = "vernemq/vmq-plugin-bundler"
 	defaultBundlerVersion   = "latest"
 )
 
