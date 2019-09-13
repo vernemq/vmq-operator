@@ -51,8 +51,6 @@ func makeDeploymentSpec(instance *vernemqv1alpha1.VerneMQ) *appsv1.DeploymentSpe
 		bundlerImage = *instance.Spec.BundlerImage
 	}
 
-	fmt.Println("Bundler Image: " + bundlerImage)
-
 	podLabels := map[string]string{"app": "vmq-bundler"}
 	podAnnotations := map[string]string{}
 
