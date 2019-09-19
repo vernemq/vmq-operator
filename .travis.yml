@@ -23,7 +23,7 @@ install:
   - git clone https://github.com/operator-framework/operator-sdk
   - cd operator-sdk
   - git checkout master
-  - make dep
+  - make tidy
   - make install
   - cd $GOPATH/src/github.com/vernemq/vmq-operator
   - dep ensure
@@ -50,6 +50,11 @@ jobs:
         - kubectl create -f examples/only_vernemq/
         - sleep 10
         - kubectl apply -f examples/only_vernemq/
+        - (kubectl --namespace messaging get deployment | grep vernemq) ; while [ $? -ne 0 ] ; do sleep 5 && kubectl --namespace messaging get deployment && (kubectl --namespace messaging get deployment | grep vernemq) ; done
+        - vernemq_deployment=$(kubectl --namespace messaging get deployment | grep vernemq | awk '{print $1}')
+        - kubectl --namespace messaging rollout status deployment/${vernemq_deployment}
+        - vernemq_deployment_pod=$(kubectl get pods --namespace messaging | grep $vernemq_deployment | awk '{print $1}')
+        - kubectl --namespace messaging logs $vernemq_deployment_pod
         - (kubectl --namespace messaging get statefulset | grep vernemq) ; while [ $? -ne 0 ] ; do sleep 5 && kubectl --namespace messaging get statefulset && (kubectl --namespace messaging get statefulset | grep vernemq) ; done
         - vernemq_statefulset=$(kubectl --namespace messaging get statefulset | grep vernemq | awk '{print $1}')
         - kubectl --namespace messaging rollout status statefulset/${vernemq_statefulset}

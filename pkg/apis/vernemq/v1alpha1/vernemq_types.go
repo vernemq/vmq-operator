@@ -79,6 +79,21 @@ type VerneMQSpec struct {
 	// Defines additional environment variables for the VerneMQ container
 	// The environment variables can be used to template the VMQConfig and VMArgs
 	Env []v1.EnvVar `json:"env,omitempty"`
+	// Version of the Plugin Bundler to be deployed
+	BundlerVersion string `json:"bundlerVersion,omitempty"`
+	// Tag of Plugin Bundler container image to be deployed. Defaults to the value of `bundlerVersion`.
+	// BundlerVersion is ignored if BundlerTag is set.
+	BundlerTag string `json:"bundlerTag,omitempty"`
+	// SHA of Plugin Bundler container image to be deployed. Defaults to the value of `bundlerVersion`.
+	// Similar to a tag, but the SHA explicitly deploys an immutable container image.
+	// BundlerVersion and BundlerTag are ignored if SHA is set.
+	BundlerSHA string `json:"bundlerSHA,omitempty"`
+	// BundlerImage if specified has precedence over bundlerBaseImage, bundlerTag and bundlerSha
+	// combinations. Specifying the bundlerVersion is still necessary to ensure the
+	// VerneMQ Operator knows what version of the Plugin Bundler is being configured.
+	BundlerImage *string `json:"bundlerImage,omitempty"`
+	// Bundler Base image to use for a VerneMQ Plugin Bundler deployment.
+	BundlerBaseImage string `json:"bundlerBaseImage,omitempty"`
 	// Defines external plugins that have to be compiled and loaded into VerneMQ
 	ExternalPlugins []PluginSource `json:"externalPlugins,omitempty"`
 	// Defines the reloadable config that VerneMQ regularly checks and applies
