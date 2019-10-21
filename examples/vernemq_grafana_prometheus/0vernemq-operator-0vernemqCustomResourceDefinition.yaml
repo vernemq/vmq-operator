@@ -57,6 +57,8 @@ spec:
                     properties:
                       address:
                         type: string
+                      allowedProtocolVersions:
+                        type: string
                       maxConnections:
                         format: int64
                         type: integer
@@ -68,8 +70,6 @@ spec:
                       port:
                         format: int64
                         type: integer
-                      protocolVersions:
-                        type: string
                       proxyProtocol:
                         type: boolean
                       tlsConfig:

@@ -95,7 +95,7 @@ func schema_pkg_apis_vernemq_v1alpha1_Listener(ref common.ReferenceCallback) com
 							Format:      "int32",
 						},
 					},
-					"protocolVersions": {
+					"allowedProtocolVersions": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Defines the allowed MQTT protocol version. Specified as a comma separated list e.g. \"3,4,5\"",
 							Type:        []string{"string"},
