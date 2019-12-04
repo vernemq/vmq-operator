@@ -14,6 +14,7 @@ env:
     - MINIKUBE_HOME=$HOME
     - CHANGE_MINIKUBE_NONE_USER=true
     - KUBECONFIG=$HOME/.kube/config
+    - GO111MODULE=on
 
 install:
   # setup operator-sdk
