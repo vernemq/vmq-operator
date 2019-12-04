@@ -4,6 +4,9 @@ sudo: required
 
 # from https://github.com/water-hole/ansible-operator/blob/master/.travis.yml
 
+go:
+  - 1.13
+
 go_import_path: github.com/vernemq/vmq-operator
 
 env:
@@ -14,18 +17,16 @@ env:
     - MINIKUBE_HOME=$HOME
     - CHANGE_MINIKUBE_NONE_USER=true
     - KUBECONFIG=$HOME/.kube/config
-    - GO111MODULE=on
 
 install:
   # setup operator-sdk
-  - go get github.com/golang/dep/cmd/dep
-  - go get github.com/operator-framework/operator-sdk
+  - go get -d github.com/operator-framework/operator-sdk | echo
   - cd $GOPATH/src/github.com/operator-framework/operator-sdk
   - git checkout master
   - make tidy
   - make install
   - cd $GOPATH/src/github.com/vernemq/vmq-operator
-  - dep ensure
+  - go mod tidy
   - operator-sdk build vernemq/vmq-operator:travis
 
 jobs:
