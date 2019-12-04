@@ -17,14 +17,12 @@ env:
     - MINIKUBE_HOME=$HOME
     - CHANGE_MINIKUBE_NONE_USER=true
     - KUBECONFIG=$HOME/.kube/config
+    - OP_SDK_RELEASE=v0.12.0
 
 install:
   # setup operator-sdk
-  - go get -d github.com/operator-framework/operator-sdk | echo
-  - cd $GOPATH/src/github.com/operator-framework/operator-sdk
-  - git checkout master
-  - make tidy
-  - make install
+  - curl -LO https://github.com/operator-framework/operator-sdk/releases/download/${OP_SDK_RELEASE}/operator-sdk-${OP_SDK_RELEASE}-x86_64-linux-gnu
+  - chmod +x operator-sdk-${OP_SDK_RELEASE}-x86_64-linux-gnu && sudo mkdir -p /usr/local/bin/ && sudo cp operator-sdk-${OP_SDK_RELEASE}-x86_64-linux-gnu /usr/local/bin/operator-sdk && rm operator-sdk-${OP_SDK_RELEASE}-x86_64-linux-gnu
   - cd $GOPATH/src/github.com/vernemq/vmq-operator
   - go mod tidy
   - operator-sdk build vernemq/vmq-operator:travis
