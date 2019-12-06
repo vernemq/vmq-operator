@@ -50,7 +50,7 @@ Listener defines the listeners to be started !!! Make sure that the JSON name of
 | mountpoint | Defines the mountpoint for this listener. Defaults to \"\" | string | false |
 | nrOfAcceptors | Defines the number of TCP acceptor processes. | int | false |
 | maxConnections | Defines the number of allowed concurrent TCP connections. | int | false |
-| protocolVersions | Defines the allowed MQTT protocol version. Specified as a comma separated list e.g. \"3,4,5\" | string | false |
+| allowedProtocolVersions | Defines the allowed MQTT protocol version. Specified as a comma separated list e.g. \"3,4,5\" | string | false |
 | websocket | Specifies that this listener accepts connections over HTTP websockets. | bool | false |
 | proxyProtocol | Enable PROXY v2 protocol for this listener | bool | false |
 | useCnAsUsername | If PROXY v2 is enabled for this listener use this flag to decide if the common name should replace the MQTT username Enabled by default (use `=false`) to disable | bool | false |
