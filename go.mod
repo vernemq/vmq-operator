@@ -5,7 +5,8 @@ go 1.13
 require (
 	cloud.google.com/go v0.35.1 // indirect
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
-	github.com/blang/semver v3.5.1+incompatible
+	github.com/brancz/gojsontoyaml v0.0.0-20190425155809-e8bd32d46b3d // indirect
+	github.com/coreos/go-semver v0.3.0
 	github.com/coreos/prometheus-operator v0.26.0 // indirect
 	github.com/emicklei/go-restful v2.8.1+incompatible // indirect
 	github.com/go-logr/logr v0.1.0
