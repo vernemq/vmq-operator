@@ -4,7 +4,8 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/blang/semver"
+	"github.com/coreos/go-semver/semver"
+
 	pkgerr "github.com/pkg/errors"
 	vernemqv1alpha1 "github.com/vernemq/vmq-operator/pkg/apis/vernemq/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -120,7 +121,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 		terminationGracePeriod = *instance.Spec.TerminationGracePeriodSeconds + dropoutPeriod
 	}
 
-	version, err := semver.Parse(instance.Spec.Version)
+	version, err := semver.NewVersion(instance.Spec.Version)
 	if err != nil {
 		return nil, pkgerr.Wrap(err, "parse version")
 	}
