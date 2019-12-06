@@ -13,7 +13,6 @@ Note: the following sections are mostly copy pasted from https://github.com/oper
 
 ### Prerequisites
 
-- [dep][dep_tool] version v0.5.0+.
 - [git][git_tool]
 - [go][go_tool] version v1.10+.
 - [docker][docker_tool] version 17.03+.
@@ -22,17 +21,7 @@ Note: the following sections are mostly copy pasted from https://github.com/oper
 
 ### Quick Start
 
-First, checkout and install the operator-sdk CLI:
-
-```sh
-$ mkdir -p $GOPATH/src/github.com/operator-framework
-$ cd $GOPATH/src/github.com/operator-framework
-$ git clone https://github.com/operator-framework/operator-sdk
-$ cd operator-sdk
-$ git checkout master
-$ make dep
-$ make install
-```
+First, checkout and install the operator-sdk CLI, see https://github.com/operator-framework/operator-sdk/blob/master/doc/user/install-operator-sdk.md for more information.
 
 ### Build and run the operator
 
@@ -130,7 +119,6 @@ The Operator SDK and the VerneMQ Operator are under Apache 2.0 license. See the 
 
 [getting_started]: ./docs/getting-started.md
 [license_file]:./LICENSE
-[dep_tool]:https://golang.github.io/dep/docs/installation.html
 [git_tool]:https://git-scm.com/downloads
 [go_tool]:https://golang.org/dl/
 [docker_tool]:https://docs.docker.com/install/
