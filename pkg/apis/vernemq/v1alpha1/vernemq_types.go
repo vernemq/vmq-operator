@@ -173,7 +173,7 @@ type Listener struct {
 	// Defines the number of allowed concurrent TCP connections.
 	MaxConnections int `json:"maxConnections,omitempty"`
 	// Defines the allowed MQTT protocol version. Specified as a comma separated list e.g. "3,4,5"
-	ProtocolVersions string `json:"protocolVersions,omitempty"`
+	AllowedProtocolVersions string `json:"allowedProtocolVersions,omitempty"`
 	// Specifies that this listener accepts connections over HTTP websockets.
 	Websocket bool `json:"websocket,omitempty"`
 	// Enable PROXY v2 protocol for this listener
