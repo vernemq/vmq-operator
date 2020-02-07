@@ -3,7 +3,7 @@ GO_PKG=github.com/vernemq/vmq-operator
 FIRST_GOPATH:=$(firstword $(subst :, ,$(shell go env GOPATH)))
 GOJSONTOYAML_BINARY:=$(FIRST_GOPATH)/bin/gojsontoyaml
 
-all: generate
+all: $(GOJSONTOYAML_BINARY) generate
 
 
 .PHONY: generate
@@ -34,4 +34,4 @@ operator_sdk_gen_openapi:
 	operator-sdk generate openapi
 
 $(GOJSONTOYAML_BINARY):
-	@go install -mod=vendor github.com/brancz/gojsontoyaml
+	@go get github.com/brancz/gojsontoyaml

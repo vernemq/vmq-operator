@@ -21,6 +21,6 @@ local kp =
 { ['alertmanager-' + name]: kp.alertmanager[name] for name in std.objectFields(kp.alertmanager) } +
 { ['prometheus-' + name]: kp.prometheus[name] for name in std.objectFields(kp.prometheus) } +
 { ['grafana-' + name]: kp.grafana[name] for name in std.objectFields(kp.grafana) } +
-{ ['vernemq-' + name]: kp.vernemq[name] for name in std.objectFields(kp.vernemq) }
+{ ['o_vernemq-' + name]: kp.vernemq[name] for name in std.objectFields(kp.vernemq) }
 
 
