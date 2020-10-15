@@ -195,5 +195,5 @@ spec:
   # Add fields here
   size: 3
   tag: latest-alpine
-  baseImage: erlio/docker-vernemq
+  baseImage: vernemq/docker-vernemq
 ```
