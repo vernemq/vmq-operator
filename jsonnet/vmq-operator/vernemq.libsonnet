@@ -43,7 +43,7 @@ local k = import 'ksonnet/ksonnet.beta.3/k.libsonnet';
     },
 
     imageRepos+:: {
-        vernemq: 'erlio/docker-vernemq',
+        vernemq: 'vernemq/vernemq',
     },
     
     
