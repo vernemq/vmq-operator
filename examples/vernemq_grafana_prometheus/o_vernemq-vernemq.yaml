@@ -6,7 +6,7 @@ metadata:
   name: k8s
   namespace: messaging
 spec:
-  baseImage: erlio/docker-vernemq
+  baseImage: vernemq/vernemq
   config:
     configs:
     - name: allow_register_during_netsplit
