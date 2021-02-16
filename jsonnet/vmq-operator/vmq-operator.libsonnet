@@ -1,4 +1,4 @@
-local k = import 'ksonnet/ksonnet.beta.3/k.libsonnet';
+local k = import 'ksonnet/ksonnet.beta.4/k.libsonnet';
 
 {
   _config+:: {
@@ -85,8 +85,8 @@ local k = import 'ksonnet/ksonnet.beta.3/k.libsonnet';
       role.withRules(rules),
    
     deployment:
-      local deployment = k.apps.v1beta2.deployment;
-      local container = k.apps.v1beta2.deployment.mixin.spec.template.spec.containersType;
+      local deployment = k.apps.v1.deployment;
+      local container = k.apps.v1.deployment.mixin.spec.template.spec.containersType;
       
       local operatorContainer =
         container.new('vmq-operator', $._config.imageRepos.vernemqOperator + ':' + $._config.versions.vernemqOperator) +
