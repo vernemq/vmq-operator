@@ -95,7 +95,7 @@ func makeDeploymentSpec(instance *vernemqv1alpha1.VerneMQ) *appsv1.DeploymentSpe
 func makeBundlerConfig(instance *vernemqv1alpha1.VerneMQ) string {
 	config := `
 {plugins, [
-	{rebar3_cargo, {git, "git://github.com/benoitc/rebar3_cargo", {ref, "379115f"}}}
+	{rebar3_cargo, {git, "https://github.com/benoitc/rebar3_cargo", {ref, "379115f"}}}
 ]}.
 {deps, [
 	`
@@ -103,7 +103,7 @@ func makeBundlerConfig(instance *vernemqv1alpha1.VerneMQ) string {
 		config = config + fmt.Sprintf("{%s, {git, \"%s\", {%s, \"%s\"}}},\n", p.ApplicationName, p.RepoURL, p.VersionType, p.Version)
 	}
 	config = config + `
-	{vmq_k8s, {git, "git://github.com/vernemq/vmq-operator", {branch, "master"}}}
+	{vmq_k8s, {git, "https://github.com/vernemq/vmq-operator", {branch, "master"}}}
 ]}.
 	`
 	return config
