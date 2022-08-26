@@ -1,7 +1,6 @@
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  creationTimestamp: null
   name: vernemqs.vernemq.com
 spec:
   group: vernemq.com
@@ -11,251 +10,256 @@ spec:
     plural: vernemqs
     singular: vernemq
   scope: Namespaced
-  subresources:
-    status: {}
-  validation:
-    openAPIV3Schema:
-      properties:
-        apiVersion:
-          type: string
-        kind:
-          type: string
-        metadata:
-          type: object
-        spec:
+
+  versions:
+    - name: v1alpha1
+      # Each version can be enabled/disabled by Served flag.
+      served : true
+      # One and only one version must be marked as the storage version.
+      storage : true
+      schema:
+        openAPIV3Schema:
+          type : object
           properties:
-            affinity:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
               type: object
-            baseImage:
-              type: string
-            bundlerBaseImage:
-              type: string
-            bundlerImage:
-              type: string
-            bundlerSHA:
-              type: string
-            bundlerTag:
-              type: string
-            bundlerVersion:
-              type: string
-            config:
+            spec:
               properties:
-                configs:
-                  items:
-                    properties:
-                      name:
-                        type: string
-                      value:
-                        type: string
-                    required:
-                    - name
-                    - value
-                    type: object
-                  type: array
-                listeners:
-                  items:
-                    properties:
-                      address:
-                        type: string
-                      allowedProtocolVersions:
-                        type: string
-                      maxConnections:
-                        format: int64
-                        type: integer
-                      mountpoint:
-                        type: string
-                      nrOfAcceptors:
-                        format: int64
-                        type: integer
-                      port:
-                        format: int64
-                        type: integer
-                      proxyProtocol:
-                        type: boolean
-                      tlsConfig:
+                affinity:
+                  type: object
+                baseImage:
+                  type: string
+                bundlerBaseImage:
+                  type: string
+                bundlerImage:
+                  type: string
+                bundlerSHA:
+                  type: string
+                bundlerTag:
+                  type: string
+                bundlerVersion:
+                  type: string
+                config:
+                  properties:
+                    configs:
+                      items:
                         properties:
-                          cafile:
+                          name:
                             type: string
-                          certfile:
+                          value:
                             type: string
-                          ciphers:
+                        required:
+                          - name
+                          - value
+                        type: object
+                      type: array
+                    listeners:
+                      items:
+                        properties:
+                          address:
                             type: string
-                          crlfile:
+                          allowedProtocolVersions:
                             type: string
-                          keyfile:
+                          maxConnections:
+                            format: int64
+                            type: integer
+                          mountpoint:
                             type: string
-                          requireCertificate:
+                          nrOfAcceptors:
+                            format: int64
+                            type: integer
+                          port:
+                            format: int64
+                            type: integer
+                          proxyProtocol:
                             type: boolean
-                          useIdentityAsUsername:
+                          tlsConfig:
+                            properties:
+                              cafile:
+                                type: string
+                              certfile:
+                                type: string
+                              ciphers:
+                                type: string
+                              crlfile:
+                                type: string
+                              keyfile:
+                                type: string
+                              requireCertificate:
+                                type: boolean
+                              useIdentityAsUsername:
+                                type: boolean
+                            required:
+                              - cafile
+                              - certfile
+                              - keyfile
+                            type: object
+                          useCnAsUsername:
+                            type: boolean
+                          websocket:
                             type: boolean
                         required:
-                        - cafile
-                        - certfile
-                        - keyfile
+                          - address
+                          - port
                         type: object
-                      useCnAsUsername:
-                        type: boolean
-                      websocket:
-                        type: boolean
-                    required:
-                    - address
-                    - port
+                      type: array
+                    plugins:
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          path:
+                            type: string
+                          postStart:
+                            items:
+                              properties:
+                                cmd:
+                                  type: string
+                                timeoutSeconds:
+                                  format: int64
+                                  type: integer
+                              required:
+                                - cmd
+                              type: object
+                            type: array
+                          postStop:
+                            items:
+                              properties:
+                                cmd:
+                                  type: string
+                                timeoutSeconds:
+                                  format: int64
+                                  type: integer
+                              required:
+                                - cmd
+                              type: object
+                            type: array
+                          preStart:
+                            items:
+                              properties:
+                                cmd:
+                                  type: string
+                                timeoutSeconds:
+                                  format: int64
+                                  type: integer
+                              required:
+                                - cmd
+                              type: object
+                            type: array
+                          preStop:
+                            items:
+                              properties:
+                                cmd:
+                                  type: string
+                                timeoutSeconds:
+                                  format: int64
+                                  type: integer
+                              required:
+                                - cmd
+                              type: object
+                            type: array
+                        required:
+                          - name
+                        type: object
+                      type: array
+                  type: object
+                configMaps:
+                  items:
+                    type: string
+                  type: array
+                containers:
+                  items:
                     type: object
                   type: array
-                plugins:
+                dropoutPeriodSeconds:
+                  format: int64
+                  type: integer
+                env:
+                  items:
+                    type: object
+                  type: array
+                externalPlugins:
                   items:
                     properties:
-                      name:
+                      applicationName:
                         type: string
-                      path:
+                      repoURL:
                         type: string
-                      postStart:
-                        items:
-                          properties:
-                            cmd:
-                              type: string
-                            timeoutSeconds:
-                              format: int64
-                              type: integer
-                          required:
-                          - cmd
-                          type: object
-                        type: array
-                      postStop:
-                        items:
-                          properties:
-                            cmd:
-                              type: string
-                            timeoutSeconds:
-                              format: int64
-                              type: integer
-                          required:
-                          - cmd
-                          type: object
-                        type: array
-                      preStart:
-                        items:
-                          properties:
-                            cmd:
-                              type: string
-                            timeoutSeconds:
-                              format: int64
-                              type: integer
-                          required:
-                          - cmd
-                          type: object
-                        type: array
-                      preStop:
-                        items:
-                          properties:
-                            cmd:
-                              type: string
-                            timeoutSeconds:
-                              format: int64
-                              type: integer
-                          required:
-                          - cmd
-                          type: object
-                        type: array
+                      version:
+                        type: string
+                      versionType:
+                        type: string
                     required:
-                    - name
+                      - applicationName
+                      - repoURL
+                      - versionType
+                      - version
                     type: object
                   type: array
-              type: object
-            configMaps:
-              items:
-                type: string
-              type: array
-            containers:
-              items:
-                type: object
-              type: array
-            dropoutPeriodSeconds:
-              format: int64
-              type: integer
-            env:
-              items:
-                type: object
-              type: array
-            externalPlugins:
-              items:
-                properties:
-                  applicationName:
+                image:
+                  type: string
+                imagePullSecrets:
+                  items:
+                    type: object
+                  type: array
+                nodeSelector:
+                  additionalProperties:
                     type: string
-                  repoURL:
+                  type: object
+                podMetadata:
+                  type: object
+                priorityClassName:
+                  type: string
+                resources:
+                  type: object
+                secrets:
+                  items:
                     type: string
-                  version:
-                    type: string
-                  versionType:
-                    type: string
-                required:
-                - applicationName
-                - repoURL
-                - versionType
-                - version
-                type: object
-              type: array
-            image:
-              type: string
-            imagePullSecrets:
-              items:
-                type: object
-              type: array
-            nodeSelector:
-              additionalProperties:
-                type: string
+                  type: array
+                securityContext:
+                  type: object
+                serviceAccountName:
+                  type: string
+                sha:
+                  type: string
+                size:
+                  format: int32
+                  type: integer
+                storage:
+                  properties:
+                    emptyDir:
+                      type: object
+                    volumeClaimTemplate:
+                      type: object
+                  type: object
+                tag:
+                  type: string
+                terminationGracePeriodSeconds:
+                  format: int64
+                  type: integer
+                tolerations:
+                  items:
+                    type: object
+                  type: array
+                version:
+                  type: string
+                vmArgs:
+                  type: string
+                vmqConfig:
+                  type: string
               type: object
-            podMetadata:
-              type: object
-            priorityClassName:
-              type: string
-            resources:
-              type: object
-            secrets:
-              items:
-                type: string
-              type: array
-            securityContext:
-              type: object
-            serviceAccountName:
-              type: string
-            sha:
-              type: string
-            size:
-              format: int32
-              type: integer
-            storage:
+            status:
               properties:
-                emptyDir:
-                  type: object
-                volumeClaimTemplate:
-                  type: object
+                nodes:
+                  items:
+                    type: string
+                  type: array
+              required:
+                - nodes
               type: object
-            tag:
-              type: string
-            terminationGracePeriodSeconds:
-              format: int64
-              type: integer
-            tolerations:
-              items:
-                type: object
-              type: array
-            version:
-              type: string
-            vmArgs:
-              type: string
-            vmqConfig:
-              type: string
-          type: object
-        status:
-          properties:
-            nodes:
-              items:
-                type: string
-              type: array
           required:
-          - nodes
-          type: object
-      required:
-      - spec
-  version: v1alpha1
+            - spec
