@@ -35,7 +35,7 @@ spec:
         image: vernemq/vmq-operator:latest
         name: vmq-operator
       nodeSelector:
-        beta.kubernetes.io/os: linux
+        kubernetes.io/os: linux
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534
