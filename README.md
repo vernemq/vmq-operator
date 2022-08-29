@@ -21,7 +21,7 @@ Note: the following sections are mostly copy pasted from https://github.com/oper
 
 ### Quick Start
 
-First, checkout and install the operator-sdk CLI, see https://github.com/operator-framework/operator-sdk/blob/master/doc/user/install-operator-sdk.md for more information.
+First, checkout and install the operator-sdk CLI, see https://sdk.operatorframework.io/docs/installation/ for more information.
 
 ### Build and run the operator
 
