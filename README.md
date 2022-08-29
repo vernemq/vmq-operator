@@ -2,7 +2,15 @@
 
 Project status: **alpha**
 
-The main goal of the VerneMQ Kubernetes Operator is to simplify the deployment of a VerneMQ cluster on Kubernetes. While the operator isn't the silver bullet for every VerneMQ deployment we hope to cover most cases, where scalability and high availability are required. 
+The main goal of the VerneMQ Kubernetes Operator is to simplify the deployment of a VerneMQ cluster on Kubernetes. While the operator isn't the silver bullet for every VerneMQ deployment we hope to cover most cases, where scalability and high availability are required. All in all, the operator allows kubernetes to interpret/handle resources of 
+
+```yaml
+apiVersion: vernemq.com/v1alpha1
+kind: VerneMQ
+```
+Thus, a web-service is created in the pkg directory. The code can be find in pkg\controller, while the api definition is
+located under pkg\apis
+
 
 See: [Getting Started Guide][getting_started]
 
