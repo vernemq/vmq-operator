@@ -14,6 +14,10 @@ make docker-build
 make docker-push
 ```
 
+Afterwards, copy default-deploy into example and call
+```
+kubectl apply -f example
+```
 
 ## License
 
