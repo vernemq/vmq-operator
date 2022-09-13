@@ -19,8 +19,8 @@ spec:
       value: "on"
     - name: allow_anonymous
       value: "on"
-    - name : vmq_acl
-      value : "on"
+    - name: vmq_acl
+      value: "on"
     - name: vmq_acl.acl_file
       value: "/etc/vernemq/configmaps/vernemq-configmaps/vmq.acl"
     listeners:
