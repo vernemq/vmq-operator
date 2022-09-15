@@ -14,10 +14,13 @@ make docker-build
 make docker-push
 ```
 
-Afterwards, copy default-deploy into example and call
+Before applying the k8s deployment, base64 encode the vernemq.conf and update it in the vernemq-vernemq.yaml file
+Then, copy default-deploy into example and call
 ```
 kubectl apply -f example
 ```
+
+
 
 ## License
 

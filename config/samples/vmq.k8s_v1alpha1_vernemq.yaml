@@ -23,4 +23,4 @@ spec:
     plugins: []
   serviceAccountName: vernemq-k8s
   size: 2
-  version: 1.8.0
+  version: 1.12.3
