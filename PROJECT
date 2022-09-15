@@ -1,0 +1,19 @@
+domain: vernemq.com
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: new-vmq-operator2
+repo: github.com/vernemq/vmq-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: vernemq.com
+  group: vmq.k8s
+  kind: VerneMQ
+  path: github.com/vernemq/vmq-operator/api/v1alpha1
+  version: v1alpha1
+version: "3"

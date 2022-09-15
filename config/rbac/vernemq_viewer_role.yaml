@@ -1,0 +1,20 @@
+# permissions for end users to view vernemqs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vernemq-viewer-role
+rules:
+- apiGroups:
+  - vmq.k8s.vernemq.com
+  resources:
+  - vernemqs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - vmq.k8s.vernemq.com
+  resources:
+  - vernemqs/status
+  verbs:
+  - get

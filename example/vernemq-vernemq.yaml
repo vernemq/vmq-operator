@@ -1,0 +1,37 @@
+apiVersion: vmq.k8s.vernemq.com/v1alpha1
+kind: VerneMQ
+metadata:
+  labels:
+    vernemq: k8s
+  name: k8s
+  namespace: messaging
+spec:
+  baseImage: vernemq/vernemq
+  config:
+    configs:
+    - name: allow_register_during_netsplit
+      value: "on"
+    - name: allow_publish_during_netsplit
+      value: "on"
+    - name: allow_subscribe_during_netsplit
+      value: "on"
+    - name: allow_unsubscribe_during_netsplit
+      value: "on"
+    - name: allow_anonymous
+      value: "on"
+    - name: vmq_acl
+      value: "on"
+    - name: vmq_acl.acl_file
+      value: "/etc/vernemq/configmaps/vernemq-configmaps/vmq.acl"
+    listeners:
+    - address: 0.0.0.0
+      port: 1883
+    - address: 0.0.0.0
+      port: 1888
+      websocket: true
+    plugins: []
+  serviceAccountName: vernemq-k8s
+  size: 2
+  version: 1.12.3
+  configMaps:
+    - "vernemq-configmap"

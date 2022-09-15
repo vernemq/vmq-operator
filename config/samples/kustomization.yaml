@@ -1,0 +1,5 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- vmq.k8s_v1alpha1_vernemq.yaml
+- vernemq-service.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples
