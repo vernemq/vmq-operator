@@ -20,8 +20,6 @@ Then, copy default-deploy into example and call
 kubectl apply -f example
 ```
 
-
-
 ## License
 
 Copyright 2022.
