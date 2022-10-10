@@ -4,7 +4,7 @@ layout:
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
-projectName: new-vmq-operator2
+projectName: vmq-operator-2
 repo: github.com/vernemq/vmq-operator
 resources:
 - api:
