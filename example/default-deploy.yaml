@@ -2197,7 +2197,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: gcr.io/myproject/vmq-operator-2:latest
+        image: dbasner/vmq-operator-2-bundle:latest # can be exchanged with custom image e.g. gcr.io/myproject/vmq-operator-2:latest
         livenessProbe:
           httpGet:
             path: /healthz
