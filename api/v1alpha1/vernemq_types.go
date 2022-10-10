@@ -243,7 +243,7 @@ type VerneMQ struct {
 	Status VerneMQStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=sigs.k8s.io/controller-runtime/pkg/client.Object
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // VerneMQList contains a list of VerneMQ
 type VerneMQList struct {
