@@ -1,0 +1,8 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: vernemq-configmap
+  namespace: messaging
+data:
+  vmq.acl: |
+    topic #
