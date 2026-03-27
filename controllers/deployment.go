@@ -103,7 +103,7 @@ func makeBundlerConfig(instance *vernemqv1alpha1.VerneMQ) string {
 		config = config + fmt.Sprintf("{%s, {git, \"%s\", {%s, \"%s\"}}},\n", p.ApplicationName, p.RepoURL, p.VersionType, p.Version)
 	}
 	config = config + `
-	{vmq_k8s, {git, "https://github.com/vernemq/vmq-operator", {branch, "master"}}}
+	{vmq_k8s, {git, "https://github.com/fcraviolatti/vmq-operator", {branch, "master"}}}
 ]}.
 	`
 	return config
