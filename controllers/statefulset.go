@@ -270,6 +270,17 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 		})
 	}
 
+	if len(instance.Spec.InitContainers) > 0 {
+		volumes = append(volumes, v1.Volume{
+			Name:         "vmq-webadmin",
+			VolumeSource: v1.VolumeSource{EmptyDir: &v1.EmptyDirVolumeSource{}},
+		})
+		vernemqVolumeMounts = append(vernemqVolumeMounts, v1.VolumeMount{
+			Name:      "vmq-webadmin",
+			MountPath: "/vernemq/lib/vmq_web_ui-2.1.2/priv/www",
+		})
+	}
+
 	for _, c := range instance.Spec.ConfigMaps {
 		volumes = append(volumes, v1.Volume{
 			Name: volumeName("configmap-" + c),
@@ -363,6 +374,7 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 				Annotations: podAnnotations,
 			},
 			Spec: v1.PodSpec{
+				InitContainers: instance.Spec.InitContainers,
 				Containers: append([]v1.Container{
 					{
 						Name:            vernemqName,

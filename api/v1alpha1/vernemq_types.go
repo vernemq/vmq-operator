@@ -49,6 +49,8 @@ type VerneMQSpec struct {
 	Storage *StorageSpec `json:"storage,omitempty"`
 	// Containers allows injecting additional containers.
 	Containers []v1.Container `json:"containers,omitempty"`
+	// InitContainers allows injecting init containers into the VerneMQ pod.
+	InitContainers []v1.Container `json:"initContainers,omitempty"`
 	// Define resources requests and limits for single Pods.
 	Resources v1.ResourceRequirements `json:"resources,omitempty"`
 	// ServiceAccountName is the name of the ServiceAccount to use to run the
