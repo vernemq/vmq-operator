@@ -75,18 +75,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to primary resource VerneMQ
-	err = c.Watch(&source.Kind{Type: &vernemqv1alpha1.VerneMQ{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind[client.Object](mgr.GetCache(), &vernemqv1alpha1.VerneMQ{}, &handler.EnqueueRequestForObject{}))
 	if err != nil {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
-	// Watch for changes to secondary resource Pods and requeue the owner VerneMQ
-	err = c.Watch(&source.Kind{Type: &appsv1.StatefulSet{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &vernemqv1alpha1.VerneMQ{},
-	})
+	err = c.Watch(source.Kind[client.Object](mgr.GetCache(), &appsv1.StatefulSet{},
+		handler.EnqueueRequestForOwner(mgr.GetScheme(), mgr.GetRESTMapper(), &vernemqv1alpha1.VerneMQ{}, handler.OnlyControllerOwner()),
+	))
 	if err != nil {
 		return err
 	}
