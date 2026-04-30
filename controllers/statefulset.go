@@ -151,6 +151,8 @@ func makeStatefulSetSpec(instance *vernemqv1alpha1.VerneMQ) (*appsv1.StatefulSet
 		if version.Minor < 7 {
 			return nil, pkgerr.Errorf("unsupported VerneMQ minor version %s", version)
 		}
+	case 2:
+		// VerneMQ 2.x supported
 	default:
 		return nil, pkgerr.Errorf("unsupported VerneMQ major version %s", version)
 	}
