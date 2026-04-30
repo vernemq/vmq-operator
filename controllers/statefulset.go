@@ -461,7 +461,7 @@ leveldb.maximum_memory.percent = 20
 log.console = console
 `
 	config = config + instance.Spec.VMQConfig + "\n"
-	fmt.Printf(config)
+	fmt.Print(config)
 	return base64.StdEncoding.EncodeToString([]byte(config))
 }
 func makeGlobalVMArgs(instance *vernemqv1alpha1.VerneMQ) string {
@@ -479,6 +479,6 @@ func makeGlobalVMArgs(instance *vernemqv1alpha1.VerneMQ) string {
 -smp enable
 `
 	vmArgs = vmArgs + instance.Spec.VMArgs + "\n"
-	fmt.Printf(vmArgs)
+	fmt.Print(vmArgs)
 	return base64.StdEncoding.EncodeToString([]byte(vmArgs))
 }
